@@ -225,6 +225,7 @@ class _ObservationHistoryPageState extends State<ObservationHistoryPage> {
                       zoomPanBehavior: ZoomPanBehavior(
                         enablePinching: true,
                         enablePanning: true,
+                        enableDoubleTapZooming: true,
                       ),
                       tooltipBehavior: _tooltipBehavior,
                       series: <CartesianSeries<_ChartData, DateTime>>[
@@ -244,6 +245,9 @@ class _ObservationHistoryPageState extends State<ObservationHistoryPage> {
                       ],
                     ),
           ),
+          chartData.length != 0 ?
+          Text('共 ${chartData.length} 筆資料，時間範圍：${DateFormat('MM/dd HH:mm').format(chartData.first.time)} - ${DateFormat('MM/dd HH:mm').format(chartData.last.time)}'):Text("無資料")
+
         ],
       ),
     );

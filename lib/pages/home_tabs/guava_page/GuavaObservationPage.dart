@@ -263,6 +263,11 @@ class _FeatureChartState extends State<FeatureChart>
                       primaryYAxis: NumericAxis(
                         majorGridLines: const MajorGridLines(width: 0.3),
                       ),
+                      zoomPanBehavior: ZoomPanBehavior(
+                        enablePinching: true,
+                        enablePanning: true,
+                        enableDoubleTapZooming: true,
+                      ),
                       series: <CartesianSeries>[
                         // 群組資料線
                         LineSeries<ChartData, DateTime>(

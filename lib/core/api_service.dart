@@ -546,4 +546,25 @@ class ApiService {
       return null;
     }
   }
+
+  Future<Map<String, dynamic>?> fetchChatgpt({
+    required String groupUUID,
+    required String fruit,
+    required String disease,
+    required String score}) async {
+    final url = Uri.parse('$baseUrl/odata/api/v1-Odata/chatgpt?groupUUID=$groupUUID&fruit=$fruit&disease=$disease&score=$score');
+
+    final response = await http.get(
+      url,
+      headers: {'accept': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      return data; // ✅ 直接回傳整個 Map
+    } else {
+      print('取得新聞資料失敗: ${response.statusCode}');
+      return null;
+    }
+  }
 }

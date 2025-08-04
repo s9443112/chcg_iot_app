@@ -78,11 +78,14 @@ class _GrapeObservationPageState extends State<GrapeObservationPage> {
         aggregate: "hours",
       );
 
-      groupDataMap[feature] = data
-              ?.map<ChartData>((item) => ChartData(
-                    DateTime.parse(item['time']),
-                    double.tryParse(item['value'].toString()) ?? 0,
-                  ))
+      groupDataMap[feature] =
+          data
+              ?.map<ChartData>(
+                (item) => ChartData(
+                  DateTime.parse(item['time']),
+                  double.tryParse(item['value'].toString()) ?? 0,
+                ),
+              )
               .toList() ??
           [];
 
@@ -95,11 +98,14 @@ class _GrapeObservationPageState extends State<GrapeObservationPage> {
           aggregate: "hours",
         );
 
-        mineDataMap[feature] = mydata
-                ?.map<ChartData>((item) => ChartData(
-                      DateTime.parse(item['time']),
-                      double.tryParse(item['value'].toString()) ?? 0,
-                    ))
+        mineDataMap[feature] =
+            mydata
+                ?.map<ChartData>(
+                  (item) => ChartData(
+                    DateTime.parse(item['time']),
+                    double.tryParse(item['value'].toString()) ?? 0,
+                  ),
+                )
                 .toList() ??
             [];
       }
@@ -144,45 +150,52 @@ class _GrapeObservationPageState extends State<GrapeObservationPage> {
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
         ),
       ),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
-                    children: [
-                      ElevatedButton(
-                        onPressed: () => _selectDate(isStart: true),
-                        child: Text('開始：${DateFormat('yyyy-MM-dd').format(startTime)}'),
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton(
-                        onPressed: () => _selectDate(isStart: false),
-                        child: Text('結束：${DateFormat('yyyy-MM-dd').format(endTime)}'),
-                      ),
-                    ],
+      body:
+          loading
+              ? const Center(child: CircularProgressIndicator())
+              : Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        ElevatedButton(
+                          onPressed: () => _selectDate(isStart: true),
+                          child: Text(
+                            '開始：${DateFormat('yyyy-MM-dd').format(startTime)}',
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: () => _selectDate(isStart: false),
+                          child: Text(
+                            '結束：${DateFormat('yyyy-MM-dd').format(endTime)}',
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const Divider(height: 1),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: features.length,
-                    itemBuilder: (context, index) {
-                      final feature = features[index];
+                  const Divider(height: 1),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: features.length,
+                      itemBuilder: (context, index) {
+                        final feature = features[index];
 
-                      return FeatureChart(
-                        feature: feature,
-                        title: featureNameMap[feature] ?? feature,
-                        data: chartDataMap[feature] ?? [],
-                        myData: myChartDataMap[feature] ?? [],
-                      );
-                    },
+                        return FeatureChart(
+                          feature: feature,
+                          title: featureNameMap[feature] ?? feature,
+                          data: chartDataMap[feature] ?? [],
+                          myData: myChartDataMap[feature] ?? [],
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
     );
   }
 }
@@ -230,48 +243,60 @@ class _FeatureChartState extends State<FeatureChart>
             children: [
               Text(
                 widget.title,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               widget.data.isEmpty
                   ? const Text('查無資料', style: TextStyle(color: Colors.grey))
                   : SizedBox(
-                      height: 240,
-                      child: SfCartesianChart(
-                        tooltipBehavior: tooltipBehavior,
-                        primaryXAxis: DateTimeAxis(
-                          dateFormat: DateFormat('MM/dd HH:mm'),
-                          intervalType: DateTimeIntervalType.auto,
+                    height: 240,
+                    child: SfCartesianChart(
+                      tooltipBehavior: tooltipBehavior,
+                      primaryXAxis: DateTimeAxis(
+                        dateFormat: DateFormat('MM/dd HH:mm'),
+                        intervalType: DateTimeIntervalType.auto,
+                      ),
+                      primaryYAxis: NumericAxis(
+                        majorGridLines: const MajorGridLines(width: 0.3),
+                      ),
+                      zoomPanBehavior: ZoomPanBehavior(
+                        enablePinching: true,
+                        enablePanning: true,
+                        enableDoubleTapZooming: true,
+                      ),
+                      series: <CartesianSeries>[
+                        // 群組資料線
+                        LineSeries<ChartData, DateTime>(
+                          dataSource: widget.data,
+                          xValueMapper: (ChartData d, _) => d.time,
+                          yValueMapper: (ChartData d, _) => d.value,
+                          color: Colors.indigo,
+                          width: 2,
+                          name: '群組平均',
+                          markerSettings: const MarkerSettings(
+                            isVisible: false,
+                          ),
                         ),
-                        primaryYAxis: NumericAxis(
-                          majorGridLines: const MajorGridLines(width: 0.3),
-                        ),
-                        series: <CartesianSeries>[
-                          // 群組資料線
+                        // 我的資料線
+                        if (widget.myData.isNotEmpty)
                           LineSeries<ChartData, DateTime>(
-                            dataSource: widget.data,
+                            dataSource: widget.myData,
                             xValueMapper: (ChartData d, _) => d.time,
                             yValueMapper: (ChartData d, _) => d.value,
-                            color: Colors.indigo,
+                            color: Colors.orange,
                             width: 2,
-                            name: '群組平均',
-                            markerSettings: const MarkerSettings(isVisible: false),
-                          ),
-                          // 我的資料線
-                          if (widget.myData.isNotEmpty)
-                            LineSeries<ChartData, DateTime>(
-                              dataSource: widget.myData,
-                              xValueMapper: (ChartData d, _) => d.time,
-                              yValueMapper: (ChartData d, _) => d.value,
-                              color: Colors.orange,
-                              width: 2,
-                              name: '我的數據',
-                              markerSettings: const MarkerSettings(isVisible: false),
+                            name: '我的數據',
+                            markerSettings: const MarkerSettings(
+                              isVisible: false,
                             ),
-                        ],
-                        legend: Legend(isVisible: true),
-                      ),
+                          ),
+                      ],
+                      legend: Legend(isVisible: true),
                     ),
+                  ),
             ],
           ),
         ),

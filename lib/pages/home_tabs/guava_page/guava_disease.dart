@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:agritalk_iot_app/core/api_service.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
+import 'dart:async';
 
 class GuavaDiseasePage extends StatefulWidget {
   const GuavaDiseasePage({super.key});
@@ -162,6 +163,35 @@ class _GuavaDiseasePageState extends State<GuavaDiseasePage> {
               data['feedback'] ?? '-',
               style: const TextStyle(fontSize: 15, height: 1.6),
             ),
+            TextButton.icon(
+              onPressed: () {
+                // 顯示 AlertDialog（初始為 loading）
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) {
+                    return _ChatgptAdviceDialog(
+                      groupUUID: groupUUID,
+                      fruit: data['fruit'] ?? '番石榴',
+                      disease: data['disease'] ?? title,
+                      score: (data['score'] ?? 0).toString(),
+                      apiService: apiService,
+                    );
+                  },
+                );
+              },
+              icon: const Icon(
+                Icons.chat_bubble_outline,
+                color: Color(0xFF7B4DBB),
+              ),
+              label: const Text(
+                '如何防治？',
+                style: TextStyle(
+                  color: Color(0xFF7B4DBB),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
 
             const SizedBox(height: 16),
 
@@ -193,6 +223,11 @@ class _GuavaDiseasePageState extends State<GuavaDiseasePage> {
                       tooltipBehavior: TooltipBehavior(
                         enable: true,
                         format: 'point.x : 分數 point.y%',
+                      ),
+                      zoomPanBehavior: ZoomPanBehavior(
+                        enablePinching: true,
+                        enablePanning: true,
+                        enableDoubleTapZooming: true,
                       ),
                       series: <CartesianSeries>[
                         LineSeries<ChartData, DateTime>(
@@ -245,4 +280,145 @@ class ChartData {
   final double value;
 
   ChartData(this.time, this.value);
+}
+
+class _ChatgptAdviceDialog extends StatefulWidget {
+  final String groupUUID;
+  final String fruit;
+  final String disease;
+  final String score;
+  final ApiService apiService;
+
+  const _ChatgptAdviceDialog({
+    required this.groupUUID,
+    required this.fruit,
+    required this.disease,
+    required this.score,
+    required this.apiService,
+  });
+
+  @override
+  State<_ChatgptAdviceDialog> createState() => _ChatgptAdviceDialogState();
+}
+
+class _ChatgptAdviceDialogState extends State<_ChatgptAdviceDialog> {
+  bool isLoading = true;
+  List<String> suggestions = [];
+  late Timer _dotTimer;
+
+  String _thinkingText = 'AI 思考中 .';
+  int _dotCount = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _startDotAnimation();
+    _loadAdvice();
+  }
+
+  @override
+  void dispose() {
+    _dotTimer.cancel();
+    super.dispose();
+  }
+
+  void _startDotAnimation() {
+    _dotTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (!mounted) return;
+      setState(() {
+        _dotCount = (_dotCount % 5) + 1;
+        _thinkingText = 'AI 思考中 ${'.' * _dotCount}';
+      });
+    });
+  }
+
+  Future<void> _loadAdvice() async {
+    final result = await widget.apiService.fetchChatgpt(
+      groupUUID: widget.groupUUID,
+      fruit: widget.fruit,
+      disease: widget.disease,
+      score: widget.score,
+    );
+
+    if (!mounted) return;
+
+    if (result != null && result['data'] != null) {
+      final raw = result['data'] as String;
+
+      setState(() {
+        suggestions =
+            raw
+                .split(RegExp(r'\\n|\n'))
+                .map((s) => s.trim())
+                .where((s) => s.isNotEmpty)
+                .toList();
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        suggestions = ['❌ 無法取得防治建議，請稍後再試。'];
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text(
+        '建議防治方式',
+        style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF7B4DBB)),
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      content:
+          isLoading
+              ? SizedBox(
+                height: 120,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _thinkingText,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const CircularProgressIndicator(),
+                  ],
+                ),
+              )
+              : SizedBox(
+                width: double.maxFinite,
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: suggestions.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder:
+                      (_, index) => Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            '• ',
+                            style: TextStyle(fontSize: 16, height: 1.5),
+                          ),
+                          Expanded(
+                            child: Text(
+                              suggestions[index],
+                              style: const TextStyle(fontSize: 15, height: 1.5),
+                            ),
+                          ),
+                        ],
+                      ),
+                ),
+              ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('關閉'),
+        ),
+      ],
+    );
+  }
 }

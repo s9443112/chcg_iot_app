@@ -267,172 +267,166 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ],
           ),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // 左上角編號
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: Text(
-                    '編號: $serialId',
-                    style: TextStyle(
-                      fontSize: 14.0.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black54,
-                    ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // 左上角編號
+              Align(
+                alignment: Alignment.topLeft,
+                child: Text(
+                  '編號: $serialId',
+                  style: TextStyle(
+                    fontSize: 14.0.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black54,
                   ),
                 ),
-                SizedBox(height: 0.5.h),
+              ),
+              SizedBox(height: 0.5.h),
 
-                if (isCamera)
-                  GestureDetector(
-                    onTap: () => _openFullscreenCamera(context, value),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(3.w),
-                      child: AspectRatio(
-                        aspectRatio: 16 / 12,
-                        child: HlsCameraViewer(url: value),
+              if (isCamera)
+                GestureDetector(
+                  onTap: () => _openFullscreenCamera(context, value),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(3.w),
+                    child: AspectRatio(
+                      aspectRatio: 16 / 12,
+                      child: HlsCameraViewer(url: value),
+                    ),
+                  ),
+                )
+              else if (isActuator)
+                Column(
+                  children: [
+                    Text(
+                      isSwitchOn ? 'ON' : 'OFF',
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        color: isSwitchOn ? Colors.green : Colors.red,
                       ),
                     ),
-                  )
-                else if (isActuator)
-                  Column(
-                    children: [
-                      Text(
-                        isSwitchOn ? 'ON' : 'OFF',
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          color: isSwitchOn ? Colors.green : Colors.red,
-                        ),
+                    SizedBox(height: 0.8.h),
+                    Switch(
+                      value: isSwitchOn,
+                      activeColor: Colors.blue,
+                      inactiveThumbColor: Colors.grey,
+                      onChanged:
+                          _isSwitchLoading
+                              ? null
+                              : (bool newValue) async {
+                                setInnerState(() => _isSwitchLoading = true);
+                                final success = await apiService.switchSetting(
+                                  deviceUUID: obs['deviceUUID'],
+                                  featureEnglishName: obs['featureEnglishName'],
+                                  serialId: serialId,
+                                  newValue: newValue,
+                                );
+                                if (success && context.mounted) {
+                                  setInnerState(() {
+                                    obs['value'] = newValue.toString();
+                                    isSwitchOn = newValue;
+                                  });
+                                }
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(success ? '開關成功' : '送出失敗'),
+                                    ),
+                                  );
+                                }
+                                setInnerState(() => _isSwitchLoading = false);
+                              },
+                    ),
+                  ],
+                )
+              else
+                Column(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(2.w),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        shape: BoxShape.circle,
                       ),
-                      SizedBox(height: 0.8.h),
-                      Switch(
-                        value: isSwitchOn,
-                        activeColor: Colors.blue,
-                        inactiveThumbColor: Colors.grey,
-                        onChanged:
-                            _isSwitchLoading
-                                ? null
-                                : (bool newValue) async {
-                                  setInnerState(() => _isSwitchLoading = true);
-                                  final success = await apiService
-                                      .switchSetting(
-                                        deviceUUID: obs['deviceUUID'],
-                                        featureEnglishName:
-                                            obs['featureEnglishName'],
-                                        serialId: serialId,
-                                        newValue: newValue,
-                                      );
-                                  if (success && context.mounted) {
-                                    setInnerState(() {
-                                      obs['value'] = newValue.toString();
-                                      isSwitchOn = newValue;
-                                    });
-                                  }
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          success ? '開關成功' : '送出失敗',
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                  setInnerState(() => _isSwitchLoading = false);
-                                },
+                      child: Icon(
+                        iconData,
+                        size: 9.w,
+                        color: const Color(0xFF7B4DBB),
                       ),
-                    ],
-                  )
-                else
-                  Column(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(2.w),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          iconData,
-                          size: 9.w,
-                          color: const Color(0xFF7B4DBB),
-                        ),
+                    ),
+                    // SizedBox(height: 0.1.h),
+                    Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
                       ),
-                      // SizedBox(height: 0.1.h),
-                      Text(
-                        value,
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+
+              // SizedBox(height: 0.8.h),
+
+              // 功能名稱，不換行，自動縮小
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  featureName,
+                  style: TextStyle(
+                    fontSize: 17.5.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
                   ),
+                  maxLines: 1,
+                ),
+              ),
 
-                // SizedBox(height: 0.8.h),
-
-                // 功能名稱，不換行，自動縮小
+              // SizedBox(height: 0.5.h),
+              Text(
+                time,
+                style: TextStyle(fontSize: 14.0.sp, color: Colors.grey),
+              ),
+              if (!isCamera && !isActuator)
                 FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text(
-                    featureName,
-                    style: TextStyle(
-                      fontSize: 17.5.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                  child: TextButton(
+                    onPressed: () => _viewHistory(context, obs),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF7B4DBB),
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      textStyle: TextStyle(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    maxLines: 1,
+                    child: const Text('查看歷史資料'),
                   ),
                 ),
 
-                // SizedBox(height: 0.5.h),
-                Text(
-                  time,
-                  style: TextStyle(fontSize: 14.0.sp, color: Colors.grey),
+              if (isActuator)
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: TextButton(
+                    onPressed: () => _viewAutoControl(context, obs),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF7B4DBB),
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      textStyle: TextStyle(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    child: const Text('自動控制設定'),
+                  ),
                 ),
-                if (!isCamera && !isActuator)
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: TextButton(
-                      onPressed: () => _viewHistory(context, obs),
-                      style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFF7B4DBB),
-                        // padding: EdgeInsets.zero,
-                        // minimumSize: Size.zero,
-                        // tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        textStyle: TextStyle(
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      child: const Text('查看歷史資料'),
-                    ),
-                  ),
-
-                if (isActuator)
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: TextButton(
-                      onPressed: () => _viewAutoControl(context, obs),
-                      style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFF7B4DBB),
-                        // padding: EdgeInsets.zero,
-                        // minimumSize: Size.zero,
-                        // tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        textStyle: TextStyle(
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      child: const Text('自動控制設定'),
-                    ),
-                  ),
-              ],
-            ),
+            ],
           ),
         );
       },
