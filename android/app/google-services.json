@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "911958358174",
+    "project_id": "moaiottalk",
+    "storage_bucket": "moaiottalk.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:911958358174:android:108e85ce34f7c82e9c638f",
+        "android_client_info": {
+          "package_name": "com.agritalk.agritalk_iot_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDAs8-iIwBJyrz3ykwuUepQPV3JrBzydqY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
