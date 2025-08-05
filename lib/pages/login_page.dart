@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/api_service.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -39,8 +41,9 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _login(BuildContext context, {bool isGuest = false}) async {
     final username = isGuest ? 'guest' : usernameController.text;
     final password = isGuest ? 'guest' : passwordController.text;
+    String? fcm_token = await FirebaseMessaging.instance.getToken();
 
-    final result = await apiService.login(username, password);
+    final result = await apiService.login(username, password, fcm_token);
     if (result != null && result['token'] != null) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('token', result['token']);

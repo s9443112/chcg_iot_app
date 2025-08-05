@@ -7,12 +7,12 @@ import 'package:intl/intl.dart';
 class ApiService {
   final baseUrl = dotenv.env['API_BASE_URL'];
 
-  Future<Map<String, dynamic>?> login(String username, String password) async {
+  Future<Map<String, dynamic>?> login(String username, String password, String? fcm_token) async {
     final url = Uri.parse('$baseUrl/odata/api/v1-Odata/account/login');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'username': username, 'password': password}),
+      body: jsonEncode({'username': username, 'password': password, 'fcm_token': fcm_token}),
     );
 
     if (response.statusCode == 200) {

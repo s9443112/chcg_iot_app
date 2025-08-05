@@ -24,6 +24,8 @@ Future main() async {
   String? token = await FirebaseMessaging.instance.getToken();
   print('✅ FCM Token: $token');
 
+  await FirebaseMessaging.instance.subscribeToTopic("all_news");
+
   runApp(
     ResponsiveSizer(
       builder: (context, orientation, screenType) {
