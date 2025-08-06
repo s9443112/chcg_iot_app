@@ -15,8 +15,10 @@ class _DiseaseAIPageState extends State<DiseaseAIPage> {
   List<dynamic> results = [];
   bool loading = true;
 
-  DateTime startDate = DateTime.now().subtract(const Duration(days: 7));
-  DateTime endDate = DateTime.now();
+  // DateTime startDate = DateTime.now().subtract(const Duration(days: 7));
+  // DateTime endDate = DateTime.now();
+
+  DateTime selectedDate = DateTime.now();
 
   final Map<String, Uint8List?> _imageCache = {}; // ✅ 圖片快取
 
@@ -28,36 +30,48 @@ class _DiseaseAIPageState extends State<DiseaseAIPage> {
 
   Future<void> fetchHistory() async {
     setState(() => loading = true);
+
+    final startTime = DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+      0,
+      0,
+      0,
+    );
+    final endTime = DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+      23,
+      59,
+      59,
+    );
+
     final res = await apiService.fetchImageDetectHistory(
-      startTime: startDate,
-      endTime: endDate,
-      cameraIp: 'melon_PM_test2',
+      startTime: startTime,
+      endTime: endTime,
+      cameraIp: 'vivotek_nanzhuang_1',
     );
 
     if (mounted) {
       setState(() {
         results = res?['data']?['results'] ?? [];
-        _imageCache.clear(); // 查詢新資料就清空快取
+        _imageCache.clear(); // 清除舊圖
         loading = false;
       });
     }
   }
 
-  Future<void> _selectDate({required bool isStart}) async {
+  Future<void> _selectDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: isStart ? startDate : endDate,
+      initialDate: selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
     );
     if (picked != null) {
-      setState(() {
-        if (isStart) {
-          startDate = DateTime(picked.year, picked.month, picked.day, 0, 0, 0);
-        } else {
-          endDate = DateTime(picked.year, picked.month, picked.day, 23, 59, 59);
-        }
-      });
+      setState(() => selectedDate = picked);
       fetchHistory();
     }
   }
@@ -78,85 +92,92 @@ class _DiseaseAIPageState extends State<DiseaseAIPage> {
             child: Row(
               children: [
                 ElevatedButton(
-                  onPressed: () => _selectDate(isStart: true),
-                  child: Text('開始：${DateFormat('yyyy-MM-dd').format(startDate)}'),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: () => _selectDate(isStart: false),
-                  child: Text('結束：${DateFormat('yyyy-MM-dd').format(endDate)}'),
+                  onPressed: _selectDate,
+                  child: Text(
+                    '查詢日期：${DateFormat('yyyy-MM-dd').format(selectedDate)}',
+                  ),
                 ),
               ],
             ),
           ),
           Expanded(
-            child: loading
-                ? const Center(child: CircularProgressIndicator())
-                : results.isEmpty
+            child:
+                loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : results.isEmpty
                     ? const Center(child: Text("目前沒有資料"))
                     : ListView.separated(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: results.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final item = results[index];
-                          final filePath = item['file_path'] ?? '';
-                          final uploadTime = item['upload_time'] ?? '';
-                          final lesionArea = item['lesion_area'] ?? 0;
-                          final leafArea = item['leaf_area'] ?? 0;
+                      padding: const EdgeInsets.all(16),
+                      itemCount: results.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final item = results[index];
+                        final filePath = item['file_path'] ?? '';
+                        final uploadTime = item['upload_time'] ?? '';
+                        final lesionArea = item['lesion_area'] ?? 0;
+                        final leafArea = item['leaf_area'] ?? 0;
 
-                          return Card(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                                  child: FutureBuilder<Uint8List?>(
-                                    future: _loadImage(filePath),
-                                    builder: (context, snapshot) {
-                                      if (snapshot.connectionState == ConnectionState.waiting) {
-                                        return Container(
-                                          height: 180,
-                                          color: Colors.grey[200],
-                                          child: const Center(child: CircularProgressIndicator()),
-                                        );
-                                      } else if (snapshot.hasData) {
-                                        return Image.memory(
-                                          snapshot.data!,
-                                          height: 180,
-                                          width: double.infinity,
-                                          fit: BoxFit.cover,
-                                        );
-                                      } else {
-                                        return Container(
-                                          height: 180,
-                                          color: Colors.grey[300],
-                                          child: const Center(child: Icon(Icons.broken_image)),
-                                        );
-                                      }
-                                    },
-                                  ),
+                        return Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(12),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text("上傳時間：${_formatDateTime(uploadTime)}"),
-                                      const SizedBox(height: 6),
-                                      Text("葉面積：${leafArea.toStringAsFixed(2)}"),
-                                      Text("病斑面積：${lesionArea.toStringAsFixed(2)}"),
-                                    ],
-                                  ),
-                                )
-                              ],
-                            ),
-                          );
-                        },
-                      ),
+                                child: FutureBuilder<Uint8List?>(
+                                  future: _loadImage(filePath),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return Container(
+                                        height: 180,
+                                        color: Colors.grey[200],
+                                        child: const Center(
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                      );
+                                    } else if (snapshot.hasData) {
+                                      return Image.memory(
+                                        snapshot.data!,
+                                        height: 180,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                      );
+                                    } else {
+                                      return Container(
+                                        height: 180,
+                                        color: Colors.grey[300],
+                                        child: const Center(
+                                          child: Icon(Icons.broken_image),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("上傳時間：${_formatDateTime(uploadTime)}"),
+                                    const SizedBox(height: 6),
+                                    Text("葉面積：${leafArea.toStringAsFixed(2)}"),
+                                    Text(
+                                      "病斑面積：${lesionArea.toStringAsFixed(2)}",
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
           ),
         ],
       ),
