@@ -3,16 +3,25 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
+import 'dart:typed_data';
 
 class ApiService {
   final baseUrl = dotenv.env['API_BASE_URL'];
 
-  Future<Map<String, dynamic>?> login(String username, String password, String? fcm_token) async {
+  Future<Map<String, dynamic>?> login(
+    String username,
+    String password,
+    String? fcm_token,
+  ) async {
     final url = Uri.parse('$baseUrl/odata/api/v1-Odata/account/login');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'username': username, 'password': password, 'fcm_token': fcm_token}),
+      body: jsonEncode({
+        'username': username,
+        'password': password,
+        'fcm_token': fcm_token,
+      }),
     );
 
     if (response.statusCode == 200) {
@@ -551,8 +560,11 @@ class ApiService {
     required String groupUUID,
     required String fruit,
     required String disease,
-    required String score}) async {
-    final url = Uri.parse('$baseUrl/odata/api/v1-Odata/chatgpt?groupUUID=$groupUUID&fruit=$fruit&disease=$disease&score=$score');
+    required String score,
+  }) async {
+    final url = Uri.parse(
+      '$baseUrl/odata/api/v1-Odata/chatgpt?groupUUID=$groupUUID&fruit=$fruit&disease=$disease&score=$score',
+    );
 
     final response = await http.get(
       url,
@@ -564,6 +576,70 @@ class ApiService {
       return data; // ✅ 直接回傳整個 Map
     } else {
       print('取得新聞資料失敗: ${response.statusCode}');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchImageDetectHistory({
+    required DateTime startTime,
+    required DateTime endTime,
+    required String cameraIp,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    if (token == null) return null;
+
+    final url = Uri.parse(
+      '$baseUrl/odata/api/v1-Odata/image_detect_history'
+      '?start_time=${startTime.toIso8601String()}'
+      '&end_time=${endTime.toIso8601String()}'
+      '&camera_ip=$cameraIp',
+    );
+
+    final response = await http.get(
+      url,
+      headers: {'accept': 'application/json', 'Authorization': token},
+    );
+
+    if (response.statusCode == 200) {
+      try {
+        final body = response.body;
+        print("原始回應：$body");
+        return jsonDecode(response.body);
+      } catch (e) {
+        print('解析 JSON 失敗: $e');
+        print('伺服器回應: ${response.body}');
+        return null;
+      }
+    } else {
+      print("取得 image_detect_history 失敗: ${response.statusCode}");
+      print("伺服器回應: ${response.body}");
+      return null;
+    }
+  }
+
+  Future<Uint8List?> fetchImageDetectPath({required String path}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    if (token == null) return null;
+
+    print({"path": path});
+
+    final url = Uri.parse('$baseUrl/odata/api/v1-Odata/image_detect_image');
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': token,
+        'Content-Type': 'application/json',
+        'Accept': 'image/*', // ✅ 接受圖片格式
+      },
+      body: jsonEncode({"path": path}),
+    );
+
+    if (response.statusCode == 200) {
+      return response.bodyBytes; // ✅ 圖片 binary
+    } else {
+      print("取得圖片失敗 ${response.statusCode}");
       return null;
     }
   }
