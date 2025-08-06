@@ -605,7 +605,7 @@ class ApiService {
       try {
         final body = response.body;
         print("原始回應：$body");
-        return jsonDecode(response.body);
+        return jsonDecode(utf8.decode(response.bodyBytes));
       } catch (e) {
         print('解析 JSON 失敗: $e');
         print('伺服器回應: ${response.body}');
@@ -618,7 +618,10 @@ class ApiService {
     }
   }
 
-  Future<Uint8List?> fetchImageDetectPath({required String path}) async {
+  Future<Uint8List?> fetchImageDetectPath({
+    required String path,
+    required String tag,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
     if (token == null) return null;
@@ -626,6 +629,8 @@ class ApiService {
     print({"path": path});
 
     final url = Uri.parse('$baseUrl/odata/api/v1-Odata/image_detect_image');
+    print(path);
+    print(jsonEncode({"path": path, "tag": tag}));
     final response = await http.post(
       url,
       headers: {
@@ -633,13 +638,64 @@ class ApiService {
         'Content-Type': 'application/json',
         'Accept': 'image/*', // ✅ 接受圖片格式
       },
-      body: jsonEncode({"path": path}),
+      body: jsonEncode({"path": path, "tag": tag}),
     );
 
     if (response.statusCode == 200) {
       return response.bodyBytes; // ✅ 圖片 binary
     } else {
       print("取得圖片失敗 ${response.statusCode}");
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> uploadImageDetectNow({
+    required String uploaderName,
+    required String cameraId,
+    required List<Uint8List> images,
+    required List<String> filenames,
+    bool analysisPhoto = false,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    if (token == null) return null;
+
+    final url = Uri.parse('$baseUrl/odata/api/v1-Odata/image_detect_image_now');
+
+    final request = http.MultipartRequest('POST', url);
+    request.headers['Authorization'] = token;
+    request.headers['Accept'] = 'application/json';
+
+    // ✅ 加入其他欄位
+    request.fields['uploader_name'] = uploaderName;
+    request.fields['camera_id'] = cameraId;
+    request.fields['analysis_photo'] = analysisPhoto.toString();
+
+    // ✅ 加入圖片
+    for (int i = 0; i < images.length; i++) {
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'files',
+          images[i],
+          filename: filenames[i],
+        ),
+      );
+    }
+
+    try {
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(utf8.decode(response.bodyBytes));
+      } else {
+        print(
+          'uploadImageDetectNow 錯誤: ${response.statusCode} ${response.body}',
+        );
+        return null;
+      }
+    } catch (e) {
+      print('uploadImageDetectNow 發生例外: $e');
       return null;
     }
   }

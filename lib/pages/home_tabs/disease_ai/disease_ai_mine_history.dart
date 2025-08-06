@@ -6,14 +6,14 @@ import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 
-class DiseaseAIPage extends StatefulWidget {
-  const DiseaseAIPage({super.key});
+class DiseaseAIMinePage extends StatefulWidget {
+  const DiseaseAIMinePage({super.key});
 
   @override
-  State<DiseaseAIPage> createState() => _DiseaseAIPageState();
+  State<DiseaseAIMinePage> createState() => _DiseaseAIPageState();
 }
 
-class _DiseaseAIPageState extends State<DiseaseAIPage> {
+class _DiseaseAIPageState extends State<DiseaseAIMinePage> {
   final apiService = ApiService();
   List<dynamic> results = [];
   bool loading = true;
@@ -51,7 +51,7 @@ class _DiseaseAIPageState extends State<DiseaseAIPage> {
     final res = await apiService.fetchImageDetectHistory(
       startTime: startTime,
       endTime: endTime,
-      cameraIp: 'vivotek_nanzhuang_1',
+      cameraIp: 'person',
     );
 
     if (mounted) {
@@ -243,7 +243,7 @@ class _DiseaseAIPageState extends State<DiseaseAIPage> {
     if (_imageCache.containsKey(path)) {
       return _imageCache[path];
     } else {
-      final data = await apiService.fetchImageDetectPath(path: path, tag: 'PM');
+      final data = await apiService.fetchImageDetectPath(path: path, tag: 'test');
       if (data != null) _imageCache[path] = data;
       return data;
     }

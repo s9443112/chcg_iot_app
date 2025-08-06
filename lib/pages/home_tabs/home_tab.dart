@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:agritalk_iot_app/pages/home_tabs/guava_page/guava_page.dart';
 import 'package:agritalk_iot_app/pages/home_tabs/grape_page/grape_page.dart';
-import 'package:agritalk_iot_app/pages/home_tabs/disease_ai/disease_ai.dart';
+import 'package:agritalk_iot_app/pages/home_tabs/disease_ai/main.dart';
 import 'package:agritalk_iot_app/pages/home_tabs/NewsDetailPage.dart';
 import 'package:agritalk_iot_app/core/api_service.dart';
 
@@ -118,7 +118,7 @@ class _HomeTabState extends State<HomeTab> {
       {
         'title': '白粉病檢測',
         'subtitle': '進入白粉病檢測平台',
-        'image': 'assets/homepage/grape.jpg',
+        'image': 'assets/homepage/detection.png',
         'url': null,
       },
       {
@@ -176,7 +176,7 @@ class _HomeTabState extends State<HomeTab> {
                 } else if (e['title'] == '白粉病檢測') {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const DiseaseAIPage()),
+                    MaterialPageRoute(builder: (_) => const DiseaseAIMainPage()),
                   );
                 }
               }

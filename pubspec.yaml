@@ -49,7 +49,9 @@ dependencies:
   flutter_cached_pdfview: ^0.4.1
   firebase_messaging: ^16.0.0
   firebase_core: ^4.0.0
-  
+  image_picker: ^1.1.2
+  path_provider: ^2.0.15
+  permission_handler: ^11.0.1  
   
 flutter_icons:
   android: true
@@ -91,6 +93,7 @@ flutter:
     - assets/homepage/drug.png
     - assets/homepage/grape.jpg
     - assets/homepage/guava.jpg
+    - assets/homepage/detection.png
     # - assets/news/pm/pm_poster.png
     # - assets/news/pm/poster.pdf
     
