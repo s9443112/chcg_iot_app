@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:agritalk_iot_app/pages/home_tabs/TimeControlTab.dart';
 import 'package:agritalk_iot_app/pages/home_tabs/ConditionControlTab.dart';
-
+import 'package:agritalk_iot_app/pages/home_tabs/CycleControlTab.dart';
 class AutoControlPage extends StatefulWidget {
   final Object obs; 
   final String deviceUUID;
@@ -41,6 +41,11 @@ class _AutoControlPageState extends State<AutoControlPage> {
         featureEnglishName: widget.featureEnglishName,
         serialId: widget.serialId,
       ),
+      CycleControlTab(
+        deviceUUID: widget.deviceUUID,
+        featureEnglishName: widget.featureEnglishName,
+        serialId: widget.serialId,
+      ),
     ];
   }
 
@@ -74,6 +79,10 @@ class _AutoControlPageState extends State<AutoControlPage> {
           NavigationDestination(
             icon: Icon(Icons.cloud),
             label: "環境條件",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.cloud),
+            label: "循環控制",
           ),
         ],
       ),

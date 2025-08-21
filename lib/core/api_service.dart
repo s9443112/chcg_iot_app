@@ -699,4 +699,103 @@ class ApiService {
       return null;
     }
   }
+
+    /// 取得循環排程（同一致動器下所有規則）
+  Future<List<dynamic>?> fetchCyclic(
+    String token,
+    String deviceUUID,
+    String serialId,
+  ) async {
+    final url = Uri.parse(
+      '$baseUrl/odata/api/v1-Odata/cyclic/$deviceUUID/$serialId/',
+    );
+
+    final res = await http.get(
+      url,
+      headers: {'accept': 'application/json', 'Authorization': token},
+    );
+
+    if (res.statusCode == 200) {
+      final data = jsonDecode(utf8.decode(res.bodyBytes));
+      return data['rules'] as List<dynamic>;
+    } else {
+      print('取得 cyclic 失敗: ${res.statusCode} ${res.body}');
+      return null;
+    }
+  }
+
+  /// 新增／更新循環排程
+  ///
+  /// 備註：
+  /// - 若 [ruleId] 為 null -> 新增；有值 -> 更新該規則。
+  /// - startTime / endTime 請用 "HH:mm" 或 "HH:mm:ss"
+  Future<Map<String, dynamic>> cyclicAdd({
+    required String token,
+    required String deviceUUID,
+    required String featureEnglishName,
+    required int serialId,
+    required int onMinutes,
+    required int offMinutes,
+    required String startTime,
+    required String endTime,
+    required List<String> weekdays,
+    bool enabled = true,
+    int? ruleId,
+  }) async {
+    final url = Uri.parse('$baseUrl/odata/api/v1-Odata/cyclic/add/');
+
+    final body = {
+      'rule_id': ruleId, // null 代表新增
+      'deviceUUID': deviceUUID,
+      'feature_name': featureEnglishName,
+      'serial_id': serialId,
+      'on_minutes': onMinutes,
+      'off_minutes': offMinutes,
+      'start_time': startTime, // "08:00" / "08:00:00"
+      'end_time': endTime,     // "20:00" / "20:00:00"
+      'weekdays': weekdays,    // ["monday",...]
+      'enabled': enabled,
+    };
+
+    final res = await http.post(
+      url,
+      headers: {
+        'Authorization': token, // 與 conditionAdd 保持一致（不用 Bearer 前綴）
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+
+    if (res.statusCode == 200) {
+      return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    } else {
+      throw Exception('新增/更新循環排程失敗：${res.statusCode} ${res.body}');
+    }
+  }
+
+  /// 刪除循環排程
+  Future<Map<String, dynamic>> cyclicDel({
+    required String token,
+    required int id,
+  }) async {
+    final url = Uri.parse('$baseUrl/odata/api/v1-Odata/cyclic/delete/');
+
+    final res = await http.post(
+      url,
+      headers: {
+        'Authorization': token,
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: jsonEncode({'id': id}),
+    );
+
+    if (res.statusCode == 200) {
+      return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    } else {
+      throw Exception('刪除循環排程失敗：${res.statusCode} ${res.body}');
+    }
+  }
+
 }
