@@ -415,27 +415,27 @@ class ApiService {
     required int serialId,
     required String action,
     required List<Map<String, dynamic>> conditions,
+    int? durationSeconds, // ✅ 新增可選秒數參數
   }) async {
     final url = Uri.parse('$baseUrl/odata/api/v1-Odata/condition/add/');
-    print({
+
+    final body = {
       'deviceUUID': deviceUUID,
       'serial_id': serialId,
       'action': action,
       'enabled': true,
       'rule_id': null,
       'conditions': conditions,
-    });
+      if (durationSeconds != null)
+        'duration_seconds': durationSeconds, // ✅ 只有有設定才會帶
+    };
+
+    print(body);
+
     final response = await http.post(
       url,
       headers: {'Authorization': token, 'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'deviceUUID': deviceUUID,
-        'serial_id': serialId,
-        'action': action,
-        'enabled': true,
-        'rule_id': null,
-        'conditions': conditions,
-      }),
+      body: jsonEncode(body),
     );
 
     if (response.statusCode == 200) {
@@ -700,7 +700,7 @@ class ApiService {
     }
   }
 
-    /// 取得循環排程（同一致動器下所有規則）
+  /// 取得循環排程（同一致動器下所有規則）
   Future<List<dynamic>?> fetchCyclic(
     String token,
     String deviceUUID,
@@ -752,8 +752,8 @@ class ApiService {
       'on_minutes': onMinutes,
       'off_minutes': offMinutes,
       'start_time': startTime, // "08:00" / "08:00:00"
-      'end_time': endTime,     // "20:00" / "20:00:00"
-      'weekdays': weekdays,    // ["monday",...]
+      'end_time': endTime, // "20:00" / "20:00:00"
+      'weekdays': weekdays, // ["monday",...]
       'enabled': enabled,
     };
 
@@ -797,5 +797,4 @@ class ApiService {
       throw Exception('刪除循環排程失敗：${res.statusCode} ${res.body}');
     }
   }
-
 }

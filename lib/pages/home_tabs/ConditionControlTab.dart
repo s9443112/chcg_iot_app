@@ -42,6 +42,7 @@ class _ConditionControlTabState extends State<ConditionControlTab> {
       if (token == null) {
         setState(() {
           error = '未登入或找不到 token';
+          isLoading = false;
         });
         return;
       }
@@ -68,22 +69,24 @@ class _ConditionControlTabState extends State<ConditionControlTab> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
     if (token == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('找不到 token')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('找不到 token')));
       return;
     }
 
     List<dynamic> targets = await apiService.fetchTargets(token) ?? [];
     List<Map<String, dynamic>> conditions = [];
 
-    // print(targets);
+    // ⭐ 新增：動作與秒數（以秒）欄位
+    String action = 'ON'; // 預設 ON
+    final durationCtrl = TextEditingController(); // 可空白
 
     void addEmptyCondition() {
       conditions.add({
         'target': null,
         'device': null,
-        'features': [],
+        'devices': <dynamic>[],
+        'features': <dynamic>[],
         'feature': null,
         'operator': '>',
         'value': '',
@@ -98,9 +101,7 @@ class _ConditionControlTabState extends State<ConditionControlTab> {
         return StatefulBuilder(
           builder: (context, setState) {
             Future<void> updateDevicesAndFeatures(
-              int index,
-              String targetUUID,
-            ) async {
+                int index, String targetUUID) async {
               final devices =
                   await apiService.fetchDevices(token, targetUUID) ?? [];
               setState(() {
@@ -112,9 +113,7 @@ class _ConditionControlTabState extends State<ConditionControlTab> {
             }
 
             Future<void> updateFeatures(
-              int index,
-              Map<String, dynamic> device,
-            ) async {
+                int index, Map<String, dynamic> device) async {
               final obs = device['deviceFeature'] ?? [];
               setState(() {
                 conditions[index]['features'] = obs;
@@ -125,10 +124,44 @@ class _ConditionControlTabState extends State<ConditionControlTab> {
             return AlertDialog(
               title: const Text('新增條件規則'),
               content: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.9, // 明確限制寬度
+                width: MediaQuery.of(context).size.width * 0.9,
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
+                      // ⭐ 動作 & durationSeconds（秒，可空）
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: action,
+                              decoration:
+                                  const InputDecoration(labelText: '執行動作'),
+                              items: const [
+                                DropdownMenuItem(
+                                    value: 'ON', child: Text('ON')),
+                                DropdownMenuItem(
+                                    value: 'OFF', child: Text('OFF')),
+                              ],
+                              onChanged: (v) =>
+                                  setState(() => action = v ?? 'ON'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: durationCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: '回復時間',
+                                helperText: 'ON→N秒後OFF；OFF→N秒後ON',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // 條件組
                       ...conditions.asMap().entries.map((entry) {
                         final index = entry.key;
                         final cond = entry.value;
@@ -145,15 +178,13 @@ class _ConditionControlTabState extends State<ConditionControlTab> {
                                 child: DropdownButtonFormField<String>(
                                   value: cond['target'] as String?,
                                   hint: const Text("選擇目標"),
-                                  items:
-                                      targets.map<DropdownMenuItem<String>>((
-                                        t,
-                                      ) {
-                                        return DropdownMenuItem<String>(
-                                          value: t['targetUUID'],
-                                          child: Text(t['area'] ?? '未命名'),
-                                        );
-                                      }).toList(),
+                                  items: targets
+                                      .map<DropdownMenuItem<String>>((t) {
+                                    return DropdownMenuItem<String>(
+                                      value: t['targetUUID'],
+                                      child: Text(t['area'] ?? '未命名'),
+                                    );
+                                  }).toList(),
                                   onChanged: (value) {
                                     setState(() {
                                       cond['target'] = value;
@@ -169,22 +200,19 @@ class _ConditionControlTabState extends State<ConditionControlTab> {
                               SizedBox(
                                 width: 220,
                                 child: DropdownButtonFormField<
-                                  Map<String, dynamic>
-                                >(
+                                    Map<String, dynamic>>(
                                   value:
                                       cond['device'] as Map<String, dynamic>?,
                                   hint: const Text("選擇裝置"),
-                                  items:
-                                      (cond['devices'] ?? []).map<
-                                        DropdownMenuItem<Map<String, dynamic>>
-                                      >((d) {
-                                        return DropdownMenuItem<
-                                          Map<String, dynamic>
-                                        >(
-                                          value: d,
-                                          child: Text(d['name'] ?? '未知裝置'),
-                                        );
-                                      }).toList(),
+                                  items: (cond['devices'] ?? [])
+                                      .map<DropdownMenuItem<
+                                          Map<String, dynamic>>>((d) {
+                                    return DropdownMenuItem<
+                                        Map<String, dynamic>>(
+                                      value: d,
+                                      child: Text(d['name'] ?? '未知裝置'),
+                                    );
+                                  }).toList(),
                                   onChanged: (device) {
                                     setState(() {
                                       cond['device'] = device;
@@ -200,29 +228,27 @@ class _ConditionControlTabState extends State<ConditionControlTab> {
                               SizedBox(
                                 width: 220,
                                 child: DropdownButtonFormField<
-                                  Map<String, dynamic>
-                                >(
+                                    Map<String, dynamic>>(
                                   value:
                                       cond['feature'] as Map<String, dynamic>?,
                                   hint: const Text("選擇感測項目"),
-                                  items:
-                                      (cond['features'] ?? []).map<
-                                        DropdownMenuItem<Map<String, dynamic>>
-                                      >((f) {
-                                        final name =
-                                            f['deviceFeatureName']
-                                                        ?.toString()
-                                                        .isNotEmpty ==
-                                                    true
-                                                ? f['deviceFeatureName']
-                                                : f['alias'] ?? '未知項目';
-
-                                        final text =
-                                            '$name（編號: ${f['serialId'] ?? '無'}）';
-                                        return DropdownMenuItem<
-                                          Map<String, dynamic>
-                                        >(value: f, child: Text(text));
-                                      }).toList(),
+                                  items: (cond['features'] ?? [])
+                                      .map<DropdownMenuItem<
+                                          Map<String, dynamic>>>((f) {
+                                    final name = (f['deviceFeatureName']
+                                                    ?.toString()
+                                                    .isNotEmpty ==
+                                                true)
+                                        ? f['deviceFeatureName']
+                                        : f['alias'] ?? '未知項目';
+                                    final text =
+                                        '$name（編號: ${f['serialId'] ?? '無'}）';
+                                    return DropdownMenuItem<
+                                        Map<String, dynamic>>(
+                                      value: f,
+                                      child: Text(text),
+                                    );
+                                  }).toList(),
                                   onChanged: (f) {
                                     setState(() {
                                       cond['feature'] = f;
@@ -238,25 +264,15 @@ class _ConditionControlTabState extends State<ConditionControlTab> {
                                   value: cond['operator'],
                                   items: const [
                                     DropdownMenuItem(
-                                      value: ">",
-                                      child: Text(">"),
-                                    ),
+                                        value: ">", child: Text(">")),
                                     DropdownMenuItem(
-                                      value: "<",
-                                      child: Text("<"),
-                                    ),
+                                        value: "<", child: Text("<")),
                                     DropdownMenuItem(
-                                      value: ">=",
-                                      child: Text(">="),
-                                    ),
+                                        value: ">=", child: Text(">=")),
                                     DropdownMenuItem(
-                                      value: "<=",
-                                      child: Text("<="),
-                                    ),
+                                        value: "<=", child: Text("<=")),
                                     DropdownMenuItem(
-                                      value: "==",
-                                      child: Text("=="),
-                                    ),
+                                        value: "==", child: Text("==")),
                                   ],
                                   onChanged: (val) {
                                     setState(() {
@@ -281,12 +297,9 @@ class _ConditionControlTabState extends State<ConditionControlTab> {
                                 ),
                               ),
 
-                              // Delete Button
+                              // 刪除條件
                               IconButton(
-                                icon: const Icon(
-                                  Icons.close,
-                                  color: Colors.red,
-                                ),
+                                icon: const Icon(Icons.close, color: Colors.red),
                                 onPressed: () {
                                   setState(() {
                                     conditions.removeAt(index);
@@ -320,44 +333,49 @@ class _ConditionControlTabState extends State<ConditionControlTab> {
                 ElevatedButton(
                   onPressed: () async {
                     try {
-                      final prepared =
-                          conditions
-                              .where(
-                                (c) =>
-                                    c['device'] != null &&
-                                    c['feature'] != null &&
-                                    c['value'].toString().isNotEmpty,
-                              )
-                              .map((c) {
-                                print(c['feature']);
-                                return {
-                                  "deviceUUID": c['device']['deviceUUID'],
-                                  "sensor": c['feature']['name'] ?? '',
-                                  "serialId": c['feature']['serialId'],
-                                  "operator": c['operator'],
-                                  "value": num.tryParse(c['value']) ?? 0,
-                                };
-                              })
-                              .toList();
+                      final prepared = conditions
+                          .where((c) =>
+                              c['device'] != null &&
+                              c['feature'] != null &&
+                              c['value'].toString().isNotEmpty)
+                          .map((c) {
+                        return {
+                          "deviceUUID": c['device']['deviceUUID'],
+                          "sensor": c['feature']['name'] ?? '',
+                          "serialId": c['feature']['serialId'],
+                          "operator": c['operator'],
+                          "value": num.tryParse(c['value']) ?? 0,
+                        };
+                      }).toList();
+
+                      if (prepared.isEmpty) {
+                        throw '請至少新增一個完整的條件';
+                      }
+
+                      // ⭐ 解析秒數（可空）
+                      final int? durationSeconds = durationCtrl.text.trim().isEmpty
+                          ? null
+                          : int.tryParse(durationCtrl.text.trim());
 
                       final result = await apiService.conditionAdd(
                         token: token,
                         deviceUUID: widget.deviceUUID,
                         serialId: int.parse(widget.serialId),
-                        action: "ON",
+                        action: action, // 使用者選擇
                         conditions: prepared,
+                        durationSeconds: durationSeconds, // ⭐ 新增
                       );
 
+                      if (!mounted) return;
                       Navigator.pop(context);
-                      fetchConditions();
-
+                      await fetchConditions();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text(result["message"] ?? "新增成功")),
                       );
                     } catch (e) {
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text("新增失敗：$e")));
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(SnackBar(content: Text("新增失敗：$e")));
                     }
                   },
                   child: const Text("送出"),
@@ -376,129 +394,135 @@ class _ConditionControlTabState extends State<ConditionControlTab> {
 
     if (isLoading) {
       body = const Center(child: CircularProgressIndicator());
-    }
-
-    if (error != null) {
+    } else if (error != null) {
       body = Center(
         child: Text(error!, style: const TextStyle(color: Colors.red)),
+      );
+    } else {
+      body = RefreshIndicator(
+        onRefresh: fetchConditions,
+        child: conditionList == null || conditionList!.isEmpty
+            ?  ListView(
+                children: [
+                  SizedBox(
+                    height: 400,
+                    child: Center(child: Text('尚未設定任何條件排程')),
+                  )
+                ],
+              )
+            : ListView.builder(
+                itemCount: conditionList!.length,
+                itemBuilder: (context, index) {
+                  final rule = conditionList![index];
+
+                  // ⭐ 顯示 duration_seconds（後端請於 list API 回傳此欄位）
+                  final ds = rule['duration_seconds'];
+
+                  return Card(
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: ListTile(
+                      title: Text(
+                        "執行動作: ${rule["action"] ?? "未指定"}",
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (ds != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              'duration: ${ds}s（觸發後自動切換相反狀態）',
+                              style: const TextStyle(color: Colors.blueGrey),
+                            ),
+                          ],
+                          const SizedBox(height: 4),
+                          ...(rule["conditions"] as List<dynamic>? ?? [])
+                              .map((cond) {
+                            final device = cond["deviceName"] ?? "未知裝置";
+                            final feature = cond["featureName"] ?? "未知項目";
+                            final operator = cond["operator"] ?? "?";
+                            final value = cond["value"]?.toString() ?? "?";
+                            return Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 2.0),
+                              child: Text("‧ [$device] $feature $operator $value"),
+                            );
+                          }).toList(),
+                        ],
+                      ),
+                      isThreeLine: true,
+                      trailing: const Icon(Icons.rule),
+                      onTap: () {
+                        // TODO: 點擊查看或編輯
+                      },
+                      onLongPress: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text("確認刪除"),
+                            content: const Text("你確定要刪除此條件規則嗎？"),
+                            actions: [
+                              TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: const Text("取消")),
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text("刪除",
+                                    style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirm != true) return;
+
+                        try {
+                          final prefs = await SharedPreferences.getInstance();
+                          final token = prefs.getString('token');
+
+                          if (token == null) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("找不到 token")),
+                            );
+                            return;
+                          }
+
+                          final ruleId = rule["id"]; // API 應回傳 id
+                          final result = await apiService.conditionDel(
+                            token: token,
+                            id: ruleId,
+                          );
+
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content:
+                                    Text(result["message"] ?? "刪除成功")),
+                          );
+
+                          fetchConditions();
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("刪除失敗：$e")),
+                          );
+                        }
+                      },
+                    ),
+                  );
+                },
+              ),
       );
     }
 
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: fetchConditions,
-        child:
-            conditionList == null || conditionList!.isEmpty
-                ? const Center(child: Text('尚未設定任何條件排程'))
-                : ListView.builder(
-                  itemCount: conditionList!.length,
-                  itemBuilder: (context, index) {
-                    final rule = conditionList![index];
-
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: ListTile(
-                        title: Text(
-                          "執行動作: ${rule["action"] ?? "未指定"}",
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 4),
-                            ...(rule["conditions"] as List<dynamic>? ?? []).map(
-                              (cond) {
-                                final device = cond["deviceName"] ?? "未知裝置";
-                                final feature = cond["featureName"] ?? "未知項目";
-                                final operator = cond["operator"] ?? "?";
-                                final value = cond["value"]?.toString() ?? "?";
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 2,
-                                  ),
-                                  child: Text(
-                                    "‧ [$device] $feature $operator $value",
-                                  ),
-                                );
-                              },
-                            ).toList(),
-                          ],
-                        ),
-
-                        isThreeLine: true,
-                        trailing: const Icon(Icons.rule),
-                        onTap: () {
-                          // TODO: 點擊查看或編輯
-                        },
-                        onLongPress: () async {
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder:
-                                (ctx) => AlertDialog(
-                                  title: const Text("確認刪除"),
-                                  content: const Text("你確定要刪除此條件規則嗎？"),
-                                  actions: [
-                                    TextButton(
-                                      onPressed:
-                                          () => Navigator.pop(ctx, false),
-                                      child: const Text("取消"),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(ctx, true),
-                                      child: const Text(
-                                        "刪除",
-                                        style: TextStyle(color: Colors.red),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                          );
-
-                          if (confirm != true) return;
-
-                          try {
-                            final prefs = await SharedPreferences.getInstance();
-                            final token = prefs.getString('token');
-
-                            if (token == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("找不到 token")),
-                              );
-                              return;
-                            }
-
-                            final ruleId =
-                                rule["id"]; // 假設 API 回傳的條件規則有 `id` 欄位
-                            final result = await apiService.conditionDel(
-                              token: token,
-                              id: ruleId,
-                            );
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(result["message"] ?? "刪除成功"),
-                              ),
-                            );
-
-                            fetchConditions();
-                          } catch (e) {
-                            ScaffoldMessenger.of(
-                              context,
-                            ).showSnackBar(SnackBar(content: Text("刪除失敗：$e")));
-                          }
-                        },
-                      ),
-                    );
-                  },
-                ),
-      ),
+      body: body,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: addConditionDialog,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('新增規則', style: const TextStyle(color: Colors.white)),
+        label: const Text('新增規則', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF7B4DBB),
       ),
     );
