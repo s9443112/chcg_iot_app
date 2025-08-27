@@ -797,4 +797,121 @@ class ApiService {
       throw Exception('刪除循環排程失敗：${res.statusCode} ${res.body}');
     }
   }
+
+  /// 控制攝影機
+  Uri _withCredsInUrl(Uri u, {String? username, String? password}) {
+    // 若原 URL 已帶 userInfo 就用原本；否則塞入提供的帳密
+    final userInfo =
+        (u.userInfo.isNotEmpty)
+            ? u.userInfo
+            : ((username?.isNotEmpty ?? false) &&
+                (password?.isNotEmpty ?? false))
+            ? '${username!}:${password!}'
+            : '';
+
+    return u.replace(userInfo: userInfo);
+  }
+
+  Map<String, String> _authHeader(Uri u, {String? username, String? password}) {
+    final usr =
+        (u.userInfo.isNotEmpty)
+            ? u.userInfo.split(':').first
+            : (username ?? '');
+    final pwd =
+        (u.userInfo.isNotEmpty && u.userInfo.contains(':'))
+            ? u.userInfo.split(':').last
+            : (password ?? '');
+
+    if (usr.isNotEmpty && pwd.isNotEmpty) {
+      final basic = base64Encode(utf8.encode('$usr:$pwd'));
+      return {'Authorization': 'Basic $basic'};
+    }
+    return {};
+  }
+
+  /// 直接用「完整 URL」打（例如 .../camctrl.cgi?move=up）
+  /// - 會自動把帳密補進網址（若提供 username/password），也會加 Authorization header
+  Future<bool> cameraControlGetByUrl(
+    String url, {
+    String? username,
+    String? password,
+  }) async {
+    Uri u = Uri.parse(url);
+    u = _withCredsInUrl(u, username: username, password: password);
+
+    final headers = {
+      'accept': 'application/json, */*',
+      ..._authHeader(u, username: username, password: password),
+    };
+
+    final res = await http.get(u, headers: headers);
+    return res.statusCode == 200;
+  }
+
+  /// 建一個「控制 base」：例如 https://host[:port]/cgi-bin/camctrl/camctrl.cgi
+  /// 然後傳指令（move=up/down/left/right/stop）
+  Future<bool> cameraMove({
+    required String controlBase,
+    required String direction, // up/down/left/right/stop
+    String? username,
+    String? password,
+  }) async {
+    final url = '$controlBase?move=$direction&channel=0&stream=0';
+    print('[cameraMove] URL: $url');
+
+    // 第一次嘗試
+    final success = await cameraControlGetByUrl(
+      url,
+      username: username,
+      password: password,
+    );
+
+    // 如果失敗且 controlBase 包含 camctrl，就改成 eCamCtrl 再試一次
+    if (!success && controlBase.contains('camctrl.cgi')) {
+      final fallbackBase = controlBase.replaceFirst('camctrl.cgi', 'eCamCtrl.cgi');
+      final fallbackUrl = '$fallbackBase?move=$direction&channel=0&stream=0';
+      print('[cameraMove] Retry URL: $fallbackUrl');
+
+      return cameraControlGetByUrl(
+        fallbackUrl,
+        username: username,
+        password: password,
+      );
+    }
+
+    return success;
+  }
+
+  /// 變焦（zoom=tele / zoom=wide）
+  Future<bool> cameraZoom({
+    required String controlBase,
+    required String action, // tele / wide
+    String? username,
+    String? password,
+  }) async {
+    final url = '$controlBase?zoom=$action&channel=0&stream=0';
+    print('[cameraZoom] URL: $url');
+
+    // 第一次嘗試
+    final success = await cameraControlGetByUrl(
+      url,
+      username: username,
+      password: password,
+    );
+
+    // 如果失敗且 controlBase 包含 camctrl，就改成 eCamCtrl 再試一次
+    if (!success && controlBase.contains('camctrl.cgi')) {
+      final fallbackBase = controlBase.replaceFirst('camctrl.cgi', 'eCamCtrl.cgi');
+      final fallbackUrl = '$fallbackBase?zoom=$action&channel=0&stream=0';
+      print('[cameraZoom] Retry URL: $fallbackUrl');
+
+      return cameraControlGetByUrl(
+        fallbackUrl,
+        username: username,
+        password: password,
+      );
+    }
+
+    return success;
+  }
 }
