@@ -69,7 +69,6 @@ class TimeControlTabState extends State<TimeControlTab> {
         scheduleList = data;
         isLoading = false;
       });
-
     } catch (e) {
       setState(() {
         error = '載入排程失敗：$e';
@@ -262,6 +261,54 @@ class TimeControlTabState extends State<TimeControlTab> {
     );
   }
 
+  // 👉 新增：用於 Dismissible 的確認 + 刪除
+  Future<bool> _onConfirmDismiss(int id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text("確認刪除"),
+            content: const Text("確定要刪除這筆排程嗎？"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text("取消"),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text("刪除", style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm != true) return false;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) throw '無 token';
+
+      final result = await apiService.scheduleDel(token: token, id: id);
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(result['message'] ?? '刪除成功')));
+        // 重新載入列表，保持與伺服器一致
+        await fetchSchedules();
+      }
+      return true; // ✅ 允許 Dismissible 真正移除
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('刪除失敗：$e'), backgroundColor: Colors.red),
+        );
+      }
+      return false; // ❌ 取消滑動刪除
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -284,22 +331,33 @@ class TimeControlTabState extends State<TimeControlTab> {
                   itemCount: scheduleList!.length,
                   itemBuilder: (context, index) {
                     final schedule = scheduleList![index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
+                    return Dismissible(
+                      key: ValueKey('schedule_${schedule["id"]}'),
+                      direction: DismissDirection.endToStart, // 右→左（左滑刪除）
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        color: Colors.red,
+                        child: const Icon(Icons.delete, color: Colors.white),
                       ),
-                      child: ListTile(
-                        title: Text(
-                          '週期: ${_formatWeekdays(schedule["weekdays"])}',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                      confirmDismiss: (_) => _onConfirmDismiss(schedule["id"]),
+                      child: Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
                         ),
-                        subtitle: Text(
-                          '時間: ${schedule["time"]} / 動作: ${schedule["action"]}',
+                        child: ListTile(
+                          title: Text(
+                            '週期: ${_formatWeekdays(schedule["weekdays"])}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            '時間: ${schedule["time"]} / 動作: ${schedule["action"]}',
+                          ),
+                          trailing: const Icon(Icons.rule),
+                          // 🔻 不再需要長按刪除
+                          // onLongPress: () => _confirmDeleteSchedule(schedule["id"]),
                         ),
-                        trailing: const Icon(Icons.rule),
-                        onLongPress:
-                            () => _confirmDeleteSchedule(schedule["id"]),
                       ),
                     );
                   },
@@ -307,8 +365,8 @@ class TimeControlTabState extends State<TimeControlTab> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: addScheduleDialog,
-        icon: const Icon(Icons.add,color: Colors.white),
-        label: const Text('新增排程',style: const TextStyle(color: Colors.white)),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('新增排程', style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF7B4DBB),
       ),
     );

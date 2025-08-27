@@ -69,9 +69,9 @@ class _CycleControlTabState extends State<CycleControlTab> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
     if (token == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('找不到 token')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('找不到 token')));
       return;
     }
 
@@ -95,14 +95,18 @@ class _CycleControlTabState extends State<CycleControlTab> {
       'sunday',
     };
     final Set<String> days = {
-      ...(rule?['weekdays']?.cast<String>() ?? <String>{'monday', 'tuesday', 'wednesday', 'thursday', 'friday'})
+      ...(rule?['weekdays']?.cast<String>() ??
+          <String>{'monday', 'tuesday', 'wednesday', 'thursday', 'friday'}),
     };
 
     start ??= const TimeOfDay(hour: 8, minute: 0);
     end ??= const TimeOfDay(hour: 20, minute: 0);
 
     Future<void> pickStart() async {
-      final picked = await showTimePicker(context: context, initialTime: start!);
+      final picked = await showTimePicker(
+        context: context,
+        initialTime: start!,
+      );
       if (picked != null) {
         setState(() => start = picked);
       }
@@ -198,29 +202,33 @@ class _CycleControlTabState extends State<CycleControlTab> {
                       // 星期多選
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: Text('重複星期', style: Theme.of(context).textTheme.titleMedium),
+                        child: Text(
+                          '重複星期',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
-                        children: allDays.map((d) {
-                          final label = _weekdayLabel(d);
-                          final selected = days.contains(d);
-                          return FilterChip(
-                            label: Text(label),
-                            selected: selected,
-                            onSelected: (v) {
-                              setState(() {
-                                if (v) {
-                                  days.add(d);
-                                } else {
-                                  days.remove(d);
-                                }
-                              });
-                            },
-                          );
-                        }).toList(),
+                        children:
+                            allDays.map((d) {
+                              final label = _weekdayLabel(d);
+                              final selected = days.contains(d);
+                              return FilterChip(
+                                label: Text(label),
+                                selected: selected,
+                                onSelected: (v) {
+                                  setState(() {
+                                    if (v) {
+                                      days.add(d);
+                                    } else {
+                                      days.remove(d);
+                                    }
+                                  });
+                                },
+                              );
+                            }).toList(),
                       ),
                       const SizedBox(height: 12),
 
@@ -291,9 +299,9 @@ class _CycleControlTabState extends State<CycleControlTab> {
                       }
                     } catch (e) {
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('儲存失敗：$e')),
-                        );
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text('儲存失敗：$e')));
                       }
                     }
                   },
@@ -312,45 +320,92 @@ class _CycleControlTabState extends State<CycleControlTab> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       if (token == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('找不到 token')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('找不到 token')));
         return;
       }
 
       final ok = await showDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('確認刪除'),
-          content: const Text('你確定要刪除此循環排程嗎？'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('取消'),
+        builder:
+            (ctx) => AlertDialog(
+              title: const Text('確認刪除'),
+              content: const Text('你確定要刪除此循環排程嗎？'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('取消'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('刪除', style: TextStyle(color: Colors.red)),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('刪除', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        ),
       );
 
       if (ok != true) return;
 
       final res = await apiService.cyclicDel(token: token, id: id);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(res['message'] ?? '刪除成功')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(res['message'] ?? '刪除成功')));
         _fetchCyclic();
       }
     } catch (e) {
       if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('刪除失敗：$e')));
+      }
+    }
+  }
+
+  Future<bool> _onConfirmDismiss(int id) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('確認刪除'),
+            content: const Text('你確定要刪除此循環排程嗎？'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('取消'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('刪除', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+    );
+
+    if (ok != true) return false;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) throw '找不到 token';
+
+      final res = await apiService.cyclicDel(token: token, id: id);
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(res['message'] ?? '刪除成功')));
+        await _fetchCyclic(); // 與後端資料保持一致
+      }
+      return true; // 允許滑動刪除
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('刪除失敗：$e')),
+          SnackBar(content: Text('刪除失敗：$e'), backgroundColor: Colors.red),
         );
       }
+      return false; // 取消滑動刪除
     }
   }
 
@@ -361,7 +416,9 @@ class _CycleControlTabState extends State<CycleControlTab> {
     if (isLoading) {
       body = const Center(child: CircularProgressIndicator());
     } else if (error != null) {
-      body = Center(child: Text(error!, style: const TextStyle(color: Colors.red)));
+      body = Center(
+        child: Text(error!, style: const TextStyle(color: Colors.red)),
+      );
     } else if (rules == null || rules!.isEmpty) {
       body = const Center(child: Text('尚未設定任何循環排程'));
     } else {
@@ -374,27 +431,39 @@ class _CycleControlTabState extends State<CycleControlTab> {
           final onM = r['on_minutes']?.toString() ?? '?';
           final offM = r['off_minutes']?.toString() ?? '?';
           final enabled = r['enabled'] == true;
-          final weekdays = (r['weekdays'] as List<dynamic>? ?? const []).cast<String>();
+          final weekdays =
+              (r['weekdays'] as List<dynamic>? ?? const []).cast<String>();
 
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: ListTile(
-              title: Text('時間窗：$start ~ $end'),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 4),
-                  Text('週期：ON $onM 分鐘 / OFF $offM 分鐘'),
-                  const SizedBox(height: 2),
-                  Text('重複：${_weekdayLabelLine(weekdays)}'),
-                  const SizedBox(height: 2),
-                  Text('狀態：${enabled ? "啟用" : "停用"}'),
-                ],
+          return Dismissible(
+            key: ValueKey('cyclic_${r['id']}'), // 唯一 key
+            direction: DismissDirection.endToStart, // 右→左（左滑刪除）
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              color: Colors.red,
+              child: const Icon(Icons.delete, color: Colors.white),
+            ),
+            confirmDismiss: (_) => _onConfirmDismiss(r['id'] as int),
+            child: Card(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: ListTile(
+                title: Text('時間窗：$start ~ $end'),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 4),
+                    Text('週期：ON $onM 分鐘 / OFF $offM 分鐘'),
+                    const SizedBox(height: 2),
+                    Text('重複：${_weekdayLabelLine(weekdays)}'),
+                    const SizedBox(height: 2),
+                    Text('狀態：${enabled ? "啟用" : "停用"}'),
+                  ],
+                ),
+                isThreeLine: true,
+                trailing: const Icon(Icons.repeat),
+                onTap: () => _addOrEditDialog(rule: r), // 點擊可編輯
+                // onLongPress: () => _deleteRule(r['id'] as int), // ← 不再需要長按刪除
               ),
-              isThreeLine: true,
-              trailing: const Icon(Icons.repeat),
-              onTap: () => _addOrEditDialog(rule: r), // 點擊可編輯
-              onLongPress: () => _deleteRule(r['id'] as int),
             ),
           );
         },
@@ -404,7 +473,10 @@ class _CycleControlTabState extends State<CycleControlTab> {
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: _fetchCyclic,
-        child: body is ListView ? body : ListView(children: [SizedBox(height: 400, child: body)]),
+        child:
+            body is ListView
+                ? body
+                : ListView(children: [SizedBox(height: 400, child: body)]),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _addOrEditDialog(),

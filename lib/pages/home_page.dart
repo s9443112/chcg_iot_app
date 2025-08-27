@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'home_tabs/home_tab.dart';
 import 'home_tabs/war_room_tab.dart';
 import 'home_tabs/profile_tab.dart';
+import 'home_tabs/about.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
@@ -15,7 +16,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  final List<Widget> _tabs = [HomeTab(), WarRoomTab(), ProfileTab()];
+  final List<Widget> _tabs = [HomeTab(), WarRoomTab(), ProfileTab(), AboutTab()];
 
   void _onItemTapped(int index) {
     setState(() {
@@ -79,6 +80,11 @@ class _HomePageState extends State<HomePage> {
               icon: Icon(Icons.person_outline),
               selectedIcon: Icon(Icons.person),
               label: '我的',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.public),
+              selectedIcon: Icon(Icons.public),
+              label: '關於我們',
             ),
           ],
         ),
