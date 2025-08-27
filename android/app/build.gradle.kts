@@ -40,6 +40,13 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    packaging {
+        jniLibs {
+            
+            pickFirsts += listOf("**/libc++_shared.so")
+        }
+    }
 }
 
 flutter {
