@@ -14,7 +14,7 @@ class GrapePage extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFF7B4DBB),
+        backgroundColor: const Color(0xFF065B4C),
         foregroundColor: Colors.white,
       ),
       body: Column(
@@ -139,7 +139,7 @@ class GrapePage extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF7B4DBB),
+                    color: Color(0xFF065B4C),
                   ),
                 ),
                 SizedBox(height: 8),

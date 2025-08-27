@@ -37,7 +37,7 @@ class _DashboardPageState extends State<DashboardPage> {
           SliverAppBar(
             pinned: true,
             centerTitle: true,
-            backgroundColor: const Color(0xFF7B4DBB),
+            backgroundColor: const Color(0xFF065B4C),
             foregroundColor: Colors.white,
             elevation: 1,
             title: Text(
@@ -120,7 +120,7 @@ class _DashboardPageState extends State<DashboardPage> {
           children: [
             Row(
               children: [
-                Icon(Icons.sensors, size: 6.w, color: const Color(0xFF7B4DBB)),
+                Icon(Icons.sensors, size: 6.w, color: const Color(0xFF065B4C)),
                 SizedBox(width: 2.w),
                 Expanded(
                   child: Text(
@@ -128,7 +128,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     style: TextStyle(
                       fontSize: 20.sp,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF7B4DBB),
+                      color: const Color(0xFF065B4C),
                     ),
                   ),
                 ),
@@ -201,7 +201,7 @@ class _DashboardPageState extends State<DashboardPage> {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16.sp,
-                color: const Color(0xFF7B4DBB),
+                color: const Color(0xFF065B4C),
               ),
             ),
             SizedBox(height: 0.5.h),
@@ -351,7 +351,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       child: Icon(
                         iconData,
                         size: 9.w,
-                        color: const Color(0xFF7B4DBB),
+                        color: const Color(0xFF065B4C),
                       ),
                     ),
                     // SizedBox(height: 0.1.h),
@@ -395,7 +395,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   child: TextButton(
                     onPressed: () => _viewHistory(context, obs),
                     style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF7B4DBB),
+                      foregroundColor: const Color(0xFF065B4C),
                       padding: EdgeInsets.zero,
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -414,7 +414,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   child: TextButton(
                     onPressed: () => _viewAutoControl(context, obs),
                     style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF7B4DBB),
+                      foregroundColor: const Color(0xFF065B4C),
                       padding: EdgeInsets.zero,
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -442,7 +442,7 @@ class _DashboardPageState extends State<DashboardPage> {
               backgroundColor: Colors.black,
               appBar: AppBar(
                 centerTitle: true,
-                backgroundColor: const Color(0xFF7B4DBB),
+                backgroundColor: const Color(0xFF065B4C),
                 foregroundColor: Colors.white,
                 title: const Text('攝影機直播'),
               ),

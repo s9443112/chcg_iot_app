@@ -15,7 +15,9 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  final List<Widget> _tabs = [HomeTab(), WarRoomTab(), ProfileTab()];
+  final List<Widget> _tabs = [
+    // HomeTab(), 
+    WarRoomTab(), ProfileTab()];
 
   void _onItemTapped(int index) {
     setState(() {
@@ -65,11 +67,11 @@ class _HomePageState extends State<HomePage> {
           selectedIndex: _selectedIndex,
           onDestinationSelected: _onItemTapped,
           destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: '首頁',
-            ),
+            // NavigationDestination(
+            //   icon: Icon(Icons.home_outlined),
+            //   selectedIcon: Icon(Icons.home),
+            //   label: '首頁',
+            // ),
             NavigationDestination(
               icon: Icon(Icons.map_outlined),
               selectedIcon: Icon(Icons.map),

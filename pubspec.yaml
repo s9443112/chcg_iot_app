@@ -56,7 +56,8 @@ dependencies:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/logo_icon.jpg"   # ← 這個放你剛剛上傳的圖
+  image_path: "assets/logo_icon.png"   # ← 這個放你剛剛上傳的圖
+  remove_alpha_ios: true
 
 flutter_native_splash:
   color: "#FFFFFF"  # 背景色（白色）

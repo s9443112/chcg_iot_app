@@ -410,7 +410,7 @@ class _CycleControlTabState extends State<CycleControlTab> {
         onPressed: () => _addOrEditDialog(),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('新增循環', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF7B4DBB),
+        backgroundColor: const Color(0xFF065B4C),
       ),
     );
   }

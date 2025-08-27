@@ -232,7 +232,7 @@ class _ProfileTabState extends State<ProfileTab> {
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFF7B4DBB),
+        backgroundColor: const Color(0xFF065B4C),
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -322,7 +322,7 @@ class _ProfileTabState extends State<ProfileTab> {
                                 style: TextStyle(color: Colors.white),
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF7B4DBB),
+                                backgroundColor: const Color(0xFF065B4C),
                               ),
                             ),
                             const SizedBox(height: 12),

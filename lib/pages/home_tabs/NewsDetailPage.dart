@@ -20,7 +20,7 @@ class NewsDetailPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('新聞詳情'),
-        backgroundColor: const Color(0xFF7B4DBB),
+        backgroundColor: const Color(0xFF065B4C),
         foregroundColor: Colors.white,
       ),
       body: ListView(
@@ -79,7 +79,7 @@ class PDFViewerPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('PDF 檢視'),
-        backgroundColor: const Color(0xFF7B4DBB),
+        backgroundColor: const Color(0xFF065B4C),
         foregroundColor: Colors.white,
       ),
       body: const PDF().fromAsset(assetPath),

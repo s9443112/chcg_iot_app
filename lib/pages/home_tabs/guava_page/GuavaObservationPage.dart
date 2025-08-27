@@ -141,7 +141,7 @@ class _GuavaObservationPageState extends State<GuavaObservationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF7B4DBB),
+        backgroundColor: const Color(0xFF065B4C),
         elevation: 0,
         foregroundColor: Colors.white,
         centerTitle: true,

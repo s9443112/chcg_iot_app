@@ -28,7 +28,7 @@ class _ObservationHistoryPageState extends State<ObservationHistoryPage> {
   final apiService = ApiService();
   late TooltipBehavior _tooltipBehavior;
 
-  static const deepBlue = Color(0xFF7B4DBB);
+  static const deepBlue = Color(0xFF065B4C);
 
   @override
   void initState() {
@@ -117,7 +117,7 @@ class _ObservationHistoryPageState extends State<ObservationHistoryPage> {
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19)
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFF7B4DBB),
+        backgroundColor: const Color(0xFF065B4C),
         foregroundColor: Colors.white,
         elevation: 0,
       ),

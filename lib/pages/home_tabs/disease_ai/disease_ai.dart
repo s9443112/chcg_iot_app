@@ -131,7 +131,7 @@ class _DiseaseAIPageState extends State<DiseaseAIPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("白粉病 AI 檢測紀錄"),
-        backgroundColor: const Color(0xFF7B4DBB),
+        backgroundColor: const Color(0xFF065B4C),
         foregroundColor: Colors.white,
         centerTitle: true,
       ),

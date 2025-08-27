@@ -58,7 +58,7 @@ class _AutoControlPageState extends State<AutoControlPage> {
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFF7B4DBB),
+        backgroundColor: const Color(0xFF065B4C),
         foregroundColor: Colors.white,
         elevation: 0,
       ),

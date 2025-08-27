@@ -243,7 +243,7 @@ class _WarRoomTabState extends State<WarRoomTab> {
         ),
 
         centerTitle: true,
-        backgroundColor: const Color(0xFF7B4DBB),
+        backgroundColor: const Color(0xFF065B4C),
         foregroundColor: Colors.white,
         elevation: 0,
       ),

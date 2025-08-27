@@ -53,7 +53,7 @@ class _HomeTabState extends State<HomeTab> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF7B4DBB),
+        backgroundColor: const Color(0xFF065B4C),
         elevation: 0,
         foregroundColor: Colors.white,
         centerTitle: true,

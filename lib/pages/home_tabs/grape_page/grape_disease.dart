@@ -141,7 +141,7 @@ class _GrapeDiseasePageState extends State<GrapeDiseasePage> {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF7B4DBB),
+                      color: Color(0xFF065B4C),
                     ),
                   ),
                 ),
@@ -189,12 +189,12 @@ class _GrapeDiseasePageState extends State<GrapeDiseasePage> {
               },
               icon: const Icon(
                 Icons.chat_bubble_outline,
-                color: Color(0xFF7B4DBB),
+                color: Color(0xFF065B4C),
               ),
               label: const Text(
                 '如何防治？',
                 style: TextStyle(
-                  color: Color(0xFF7B4DBB),
+                  color: Color(0xFF065B4C),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -247,7 +247,7 @@ class _GrapeDiseasePageState extends State<GrapeDiseasePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF7B4DBB),
+        backgroundColor: const Color(0xFF065B4C),
         elevation: 0,
         foregroundColor: Colors.white,
         centerTitle: true,
@@ -361,7 +361,7 @@ class _ChatgptAdviceDialogState extends State<_ChatgptAdviceDialog> {
     return AlertDialog(
       title: const Text(
         '建議防治方式',
-        style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF7B4DBB)),
+        style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF065B4C)),
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       content:
