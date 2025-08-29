@@ -3,12 +3,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:agritalk_iot_app/core/api_service.dart';
 import 'package:agritalk_iot_app/pages/login_page.dart';
 import 'package:intl/intl.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'dart:io' show Platform;
 
 String formatDateTime(String? isoString) {
   if (isoString == null || isoString.isEmpty) return '';
   final date = DateTime.tryParse(isoString);
   if (date == null) return '';
-  return DateFormat('yyyy-MM-dd HH:mm:ss').format(date.toLocal()); // 轉換為本地時間
+  return DateFormat('yyyy-MM-dd HH:mm:ss').format(date.toLocal());
 }
 
 class ProfileTab extends StatefulWidget {
@@ -23,11 +26,85 @@ class _ProfileTabState extends State<ProfileTab> {
   Map<String, dynamic>? account;
   bool isLoading = true;
   String? error;
+  String appVersion = ''; // ← 新增
 
   @override
   void initState() {
     super.initState();
     fetchAccount();
+    fetchAppVersion(); // ← 初始化時讀取版本
+  }
+
+  Future<void> showAppInfoDialog() async {
+    final p = await PackageInfo.fromPlatform();
+    final di = DeviceInfoPlugin();
+
+    String os = '';
+    String device = '';
+
+    if (Platform.isAndroid) {
+      final a = await di.androidInfo;
+      os = 'Android ${a.version.release} (SDK ${a.version.sdkInt})';
+      device = '${a.manufacturer} ${a.model}';
+    } else if (Platform.isIOS) {
+      final i = await di.iosInfo;
+      os = 'iOS ${i.systemVersion}';
+      device = '${i.name} ${i.model}';
+    }
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('App 資訊'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _kv('App 名稱', p.appName),
+                _kv('套件 ID', p.packageName),
+                _kv('版本號', p.version),
+                _kv('Build', p.buildNumber),
+                const Divider(),
+                _kv('作業系統', os),
+                _kv('裝置', device),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('關閉'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Widget _kv(String k, String v) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 88,
+            child: Text(
+              '$k：',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          Expanded(child: Text(v)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> fetchAppVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    setState(() {
+      appVersion = info.version; // e.g. "1.0.0"
+    });
   }
 
   Future<void> _showLoginRequiredDialog() async {
@@ -40,14 +117,14 @@ class _ProfileTabState extends State<ProfileTab> {
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.pop(context); // 關閉對話框
+                  Navigator.pop(context);
                 },
                 child: const Text('取消'),
               ),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context); // 關閉對話框
-                  Navigator.pushReplacementNamed(context, '/'); // 返回登入頁
+                  Navigator.pop(context);
+                  Navigator.pushReplacementNamed(context, '/');
                 },
                 child: const Text('前往登入'),
               ),
@@ -74,7 +151,6 @@ class _ProfileTabState extends State<ProfileTab> {
 
       final result = await apiService.account(token);
 
-      print(result);
       setState(() {
         account = result;
         isLoading = false;
@@ -288,6 +364,16 @@ class _ProfileTabState extends State<ProfileTab> {
                               value:
                                   formatDateTime(account?['last_login']) ?? '',
                             ),
+                            const SizedBox(height: 8),
+                            InfoRow(
+                              title: '版本號',
+                              value:
+                                  appVersion.isNotEmpty ? appVersion : '讀取中...',
+                              onTap:
+                                  appVersion.isNotEmpty
+                                      ? showAppInfoDialog
+                                      : null,
+                            ),
                           ],
                         ),
                       ),
@@ -349,27 +435,46 @@ class _ProfileTabState extends State<ProfileTab> {
 class InfoRow extends StatelessWidget {
   final String title;
   final String value;
+  final VoidCallback? onTap; // ← 新增
 
-  const InfoRow({super.key, required this.title, required this.value});
+  const InfoRow({
+    super.key,
+    required this.title,
+    required this.value,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              '$title：',
-              style: const TextStyle(fontWeight: FontWeight.w600),
+    final row = Row(
+      children: [
+        SizedBox(
+          width: 80,
+          child: Text(
+            '$title：',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              color: onTap == null ? Colors.black87 : const Color(0xFF7B4DBB),
+              decoration:
+                  onTap == null
+                      ? TextDecoration.none
+                      : TextDecoration.underline,
             ),
           ),
-          Expanded(
-            child: Text(value, style: const TextStyle(color: Colors.black87)),
-          ),
-        ],
-      ),
+        ),
+        if (onTap != null)
+          const Icon(Icons.info_outline, size: 18, color: Color(0xFF7B4DBB)),
+      ],
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: onTap == null ? row : InkWell(onTap: onTap, child: row),
     );
   }
 }

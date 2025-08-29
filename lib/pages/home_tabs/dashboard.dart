@@ -514,7 +514,7 @@ class _DashboardPageState extends State<DashboardPage> {
               style: TextStyle(
                 fontSize: 17.sp,
                 fontWeight: FontWeight.w800,
-                color: const Color(0xFF7B4DBB),
+                color: const Color(0xFF065B4C),
               ),
             ),
           ),
@@ -571,7 +571,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   child: Icon(
                     iconData,
                     size: 7.w,
-                    color: const Color(0xFF7B4DBB),
+                    color: const Color(0xFF065B4C),
                   ),
                 ),
                 SizedBox(width: 3.w),
@@ -656,7 +656,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   TextButton(
                     onPressed: () => _viewHistory(context, obs),
                     style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF7B4DBB),
+                      foregroundColor: const Color(0xFF065B4C),
                       textStyle: TextStyle(
                         fontSize: 15.sp,
                         fontWeight: FontWeight.bold,
@@ -669,7 +669,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   TextButton(
                     onPressed: () => _viewAutoControl(context, obs),
                     style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF7B4DBB),
+                      foregroundColor: const Color(0xFF065B4C),
                       textStyle: TextStyle(
                         fontSize: 15.sp,
                         fontWeight: FontWeight.bold,
@@ -919,7 +919,7 @@ class _PtzPadState extends State<_PtzPad> {
       decoration: BoxDecoration(
         color:
             active
-                ? const Color(0xFF7B4DBB).withOpacity(0.95)
+                ? const Color(0xFF065B4C).withOpacity(0.95)
                 : Colors.white.withOpacity(0.92),
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
@@ -933,7 +933,7 @@ class _PtzPadState extends State<_PtzPad> {
       child: IconButton(
         icon: Icon(
           icon,
-          color: active ? Colors.white : const Color(0xFF7B4DBB),
+          color: active ? Colors.white : const Color(0xFF065B4C),
         ),
         onPressed: onPressed,
       ),

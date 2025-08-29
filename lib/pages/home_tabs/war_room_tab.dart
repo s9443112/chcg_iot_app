@@ -26,6 +26,10 @@ class _WarRoomTabState extends State<WarRoomTab> {
   List<dynamic> _allTargets = [];
   List<dynamic> _allSystems = [];
 
+  bool _isListMode = false; // ← 新增：是否為列表模式
+  String _search = ''; // ← 新增：列表模式搜尋字
+  final _searchCtrl = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -232,6 +236,134 @@ class _WarRoomTabState extends State<WarRoomTab> {
     });
   }
 
+  Widget _buildListBody() {
+    // 依搜尋字過濾 systems / targets
+    final systems =
+        _allSystems.where((s) {
+          final name = (s['name'] ?? '').toString().toLowerCase();
+          return name.contains(_search.toLowerCase());
+        }).toList();
+
+    // 建立 systemUUID -> targets 映射
+    Map<String, List<dynamic>> targetsBySystem = {};
+    for (final t in _allTargets) {
+      final sys = t['systemUUID'];
+      targetsBySystem.putIfAbsent(sys, () => []).add(t);
+    }
+
+    return SafeArea(
+      child: Column(
+        children: [
+          // 搜尋框
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: TextField(
+              controller: _searchCtrl,
+              onChanged: (v) => setState(() => _search = v),
+              decoration: InputDecoration(
+                hintText: '搜尋系統名稱…',
+                prefixIcon: const Icon(Icons.search),
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child:
+                systems.isEmpty
+                    ? const Center(child: Text('查無系統'))
+                    : ListView.builder(
+                      itemCount: systems.length,
+                      itemBuilder: (ctx, i) {
+                        final s = systems[i];
+                        final sysName = s['name'] ?? '未命名系統';
+                        final sysUUID = s['systemUUID'];
+                        final list =
+                            (targetsBySystem[sysUUID] ?? []).cast<Map>();
+
+                        // 目標清單項目
+                        final tiles =
+                            list.map((t) {
+                              final area = t['area'] ?? '無區域名稱';
+                              return ListTile(
+                                leading: const Icon(Icons.place),
+                                title: Text(area),
+                                subtitle: Text(
+                                  'Lat: ${t['lat_WGS84']}, Lng: ${t['lon_WGS84']}',
+                                ),
+                                trailing: TextButton(
+  child: const Text('即時看板'),
+  onPressed: () => _onTargetMarkerTapped(t['targetUUID'], area),
+),
+                                onTap:
+                                    () => _onTargetMarkerTapped(
+                                      t['targetUUID'],
+                                      area,
+                                    ),
+                              );
+                            }).toList();
+
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ExpansionTile(
+                            tilePadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                            ),
+                            leading: const Icon(
+                              Icons.hub,
+                              color: Colors.deepPurple,
+                            ),
+                            title: Text(
+                              sysName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Text('目標數：${list.length}'),
+                            children:
+                                tiles.isNotEmpty
+                                    ? tiles
+                                    : [
+                                      const Padding(
+                                        padding: EdgeInsets.all(12),
+                                        child: Text('此系統尚無目標'),
+                                      ),
+                                    ],
+                            onExpansionChanged: (expanded) async {
+                              if (expanded) {
+                                // 展開時順便把地圖鏡頭移到系統位置（若你想要）
+                                final lat = s['lat_WGS84'];
+                                final lng = s['lon_WGS84'];
+                                if (lat != null &&
+                                    lng != null &&
+                                    !_isListMode) {
+                                  await mapController.animateCamera(
+                                    CameraUpdate.newLatLngZoom(
+                                      LatLng(lat, lng),
+                                      12,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                        );
+                      },
+                    ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -246,10 +378,19 @@ class _WarRoomTabState extends State<WarRoomTab> {
         backgroundColor: const Color(0xFF065B4C),
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          IconButton(
+            tooltip: _isListMode ? '切換到地圖' : '切換到列表',
+            icon: Icon(_isListMode ? Icons.map : Icons.list),
+            onPressed: () => setState(() => _isListMode = !_isListMode),
+          ),
+        ],
       ),
       body:
           _loading
               ? const Center(child: CircularProgressIndicator())
+              : _isListMode
+              ? _buildListBody()
               : SafeArea(
                 child: Stack(
                   children: [

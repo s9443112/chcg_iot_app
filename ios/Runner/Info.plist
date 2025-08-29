@@ -30,6 +30,11 @@
 	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
+		<!-- 讓非 HTTPS 的影音串流可載（例如 http/HLS、快照圖）-->
+		<key>NSAllowsArbitraryLoadsForMedia</key>
+		<true/>
+
+		<!-- 可留著：若你也會連內網攝影機 -->
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
@@ -55,5 +60,6 @@
 	</array>
 	<key>io.flutter.embedded_views_preview</key>
 	<true/>
+	
 </dict>
 </plist>
