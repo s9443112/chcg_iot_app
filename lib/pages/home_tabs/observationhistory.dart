@@ -70,10 +70,18 @@ class _ObservationHistoryPageState extends State<ObservationHistoryPage> {
     if (data != null) {
       final List<_ChartData> loaded =
           data.map<_ChartData>((item) {
-            return _ChartData(
-              DateTime.parse(item['time']),
-              double.tryParse(item['value'].toString()) ?? 0.0,
-            );
+            final rawValue = item['value'];
+            double parsedValue;
+
+            if (rawValue.toString().toLowerCase() == 'true') {
+              parsedValue = 1.0;
+            } else if (rawValue.toString().toLowerCase() == 'false') {
+              parsedValue = 0.0;
+            } else {
+              parsedValue = double.tryParse(rawValue.toString()) ?? 0.0;
+            }
+
+            return _ChartData(DateTime.parse(item['time']), parsedValue);
           }).toList();
 
       loaded.sort((a, b) => a.time.compareTo(b.time));
@@ -89,6 +97,80 @@ class _ObservationHistoryPageState extends State<ObservationHistoryPage> {
       });
     }
   }
+
+  // 數值格式（最多 6 小數位，去掉尾巴多餘 0）
+  final NumberFormat _numFmt = NumberFormat('0.######');
+
+  String _fmtValue(double v) => _numFmt.format(v);
+
+  Widget _buildDataTable() {
+  if (chartData.isEmpty) return const SizedBox.shrink();
+
+  // 欄位比例（你可微調 6/4 → 7/3 或 5/5）
+  const int timeFlex = 6;
+  const int valueFlex = 4;
+
+  return SizedBox(
+    height: 260, // 固定高度，內部垂直捲動
+    child: Column(
+      children: [
+        // 表頭
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: const [
+              Expanded(
+                flex: timeFlex,
+                child: Text('時間', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+              Expanded(
+                flex: valueFlex,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text('數值', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+
+        // 內容（可捲動）
+        Expanded(
+          child: ListView.separated(
+            itemCount: chartData.length,
+            separatorBuilder: (_, __) => const Divider(height: 1),
+            itemBuilder: (_, i) {
+              final e = chartData[i];
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: timeFlex,
+                      child: Text(
+                        DateFormat('MM/dd HH:mm:ss').format(e.time),
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: false,
+                      ),
+                    ),
+                    Expanded(
+                      flex: valueFlex,
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(_fmtValue(e.value)),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   Future<void> _pickDate(bool isStart) async {
     final date = await showDatePicker(
@@ -114,7 +196,7 @@ class _ObservationHistoryPageState extends State<ObservationHistoryPage> {
       appBar: AppBar(
         title: const Text(
           '歷史資料',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19)
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
         ),
         centerTitle: true,
         backgroundColor: const Color(0xFF065B4C),
@@ -219,8 +301,8 @@ class _ObservationHistoryPageState extends State<ObservationHistoryPage> {
                         dateFormat: DateFormat('yyyy-MM-dd HH:mm:ss'),
                         majorGridLines: const MajorGridLines(width: 0.5),
                       ),
-                      primaryYAxis: NumericAxis(
-                        majorGridLines: const MajorGridLines(width: 0.5),
+                      primaryYAxis: const NumericAxis(
+                        majorGridLines: MajorGridLines(width: 0.5),
                       ),
                       zoomPanBehavior: ZoomPanBehavior(
                         enablePinching: true,
@@ -233,8 +315,8 @@ class _ObservationHistoryPageState extends State<ObservationHistoryPage> {
                           name: '數值',
                           color: deepBlue,
                           dataSource: chartData,
-                          xValueMapper: (_ChartData data, _) => data.time,
-                          yValueMapper: (_ChartData data, _) => data.value,
+                          xValueMapper: (_ChartData d, _) => d.time,
+                          yValueMapper: (_ChartData d, _) => d.value,
                           markerSettings: const MarkerSettings(
                             isVisible: false,
                           ),
@@ -245,9 +327,29 @@ class _ObservationHistoryPageState extends State<ObservationHistoryPage> {
                       ],
                     ),
           ),
-          chartData.length != 0 ?
-          Text('共 ${chartData.length} 筆資料，時間範圍：${DateFormat('MM/dd HH:mm').format(chartData.first.time)} - ${DateFormat('MM/dd HH:mm').format(chartData.last.time)}'):Text("無資料")
 
+          // 底部摘要 + 表格
+          if (chartData.isNotEmpty) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Text(
+                '共 ${chartData.length} 筆資料，時間範圍：'
+                '${DateFormat('MM/dd HH:mm').format(chartData.first.time)} - '
+                '${DateFormat('MM/dd HH:mm').format(chartData.last.time)}',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: _buildDataTable(),
+            ),
+          ],
+          if (chartData.isEmpty && !isLoading)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 12),
+              child: Text('無資料'),
+            ),
         ],
       ),
     );

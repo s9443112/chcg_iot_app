@@ -71,7 +71,7 @@ class _DashboardPageState extends State<DashboardPage> {
             padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
             sliver:
                 _listMode
-                    ? _buildNonCameraListByDeviceSliver() // ➌ 新增：條列式（略過攝影機）
+                    ? _buildNonCameraListByDeviceSliver() // ➌ 條列式（略過攝影機）
                     : SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
                         final device = widget.devices[index];
@@ -95,15 +95,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   'camera',
             )
             .toList();
-    // final others =
-    //     deviceObservations
-    //         .where(
-    //           (o) =>
-    //               (o['featureEnglishName'] ?? '').toString().toLowerCase() !=
-    //               'camera',
-    //         )
-    //         .toList();
-    // print(others);
 
     final others =
         deviceObservations
@@ -129,8 +120,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
             return aSerial.compareTo(bSerial);
           });
-
-    // print(others);
 
     return Card(
       margin: EdgeInsets.symmetric(vertical: 1.h),
@@ -174,7 +163,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 3.w,
                   mainAxisSpacing: 3.w,
-                  childAspectRatio: 0.75,
+                  mainAxisExtent: 28.h,
                 ),
                 itemBuilder:
                     (context, index) => _buildObservationCard(others[index]),
@@ -283,188 +272,175 @@ class _DashboardPageState extends State<DashboardPage> {
 
     return StatefulBuilder(
       builder: (context, setInnerState) {
-        return Container(
-          padding: EdgeInsets.all(3.w),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(3.w),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 4,
-                offset: Offset(2, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // 左上角編號
-              Align(
-                alignment: Alignment.topLeft,
-                child: Text(
-                  '編號: $serialId',
-                  style: TextStyle(
-                    fontSize: 14.0.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black54,
-                  ),
-                ),
-              ),
-              SizedBox(height: 0.5.h),
+        final bool enableLongPressToAuto = isActuator;
 
-              if (isCamera)
-                GestureDetector(
-                  onTap: () => _openFullscreenCamera(context, value),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(3.w),
-                    child: AspectRatio(
-                      aspectRatio: 16 / 12,
-                      child:
-                          _pausedCameras.contains(value)
-                              ? const ColoredBox(color: Colors.black12)
-                              : CameraViewer(url: value),
-                    ),
-                  ),
-                )
-              else if (isActuator)
-                Column(
+        return GestureDetector(
+          onLongPress:
+              enableLongPressToAuto
+                  ? () => _viewAutoControl(context, obs)
+                  : null,
+          child: Container(
+            padding: EdgeInsets.all(3.w),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(3.w),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 4,
+                  offset: Offset(2, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 上：編號 + 更多
+                Row(
                   children: [
                     Text(
-                      isSwitchOn ? 'ON' : 'OFF',
+                      '編號: $serialId',
                       style: TextStyle(
-                        fontSize: 18.sp,
-                        color: isSwitchOn ? Colors.green : Colors.red,
-                      ),
-                    ),
-                    SizedBox(height: 0.8.h),
-                    Switch(
-                      value: isSwitchOn,
-                      activeColor: Colors.blue,
-                      inactiveThumbColor: Colors.grey,
-                      onChanged:
-                          _isSwitchLoading
-                              ? null
-                              : (bool newValue) async {
-                                setInnerState(() => _isSwitchLoading = true);
-                                final success = await apiService.switchSetting(
-                                  deviceUUID: obs['deviceUUID'],
-                                  featureEnglishName: obs['featureEnglishName'],
-                                  serialId: serialId,
-                                  newValue: newValue,
-                                );
-                                if (success && context.mounted) {
-                                  setInnerState(() {
-                                    obs['value'] = newValue.toString();
-                                    isSwitchOn = newValue;
-                                  });
-                                }
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(success ? '開關成功' : '送出失敗'),
-                                    ),
-                                  );
-                                }
-                                setInnerState(() => _isSwitchLoading = false);
-                              },
-                    ),
-                  ],
-                )
-              else
-                Column(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(2.w),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        iconData,
-                        size: 9.w,
-                        color: const Color(0xFF065B4C),
-                      ),
-                    ),
-                    // SizedBox(height: 0.1.h),
-                    Text(
-                      value,
-                      style: TextStyle(
-                        fontSize: 18.sp,
+                        fontSize: 14.sp,
+                        color: Colors.black54,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
+                    const Spacer(),
+                    if (isActuator)
+                      PopupMenuButton<String>(
+                        tooltip: '更多',
+                        onSelected: (key) {
+                          if (key == 'auto') _viewAutoControl(context, obs);
+                        },
+                        itemBuilder:
+                            (context) => const [
+                              PopupMenuItem(
+                                value: 'auto',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.settings_suggest_rounded,
+                                      size: 18,
+                                    ),
+                                    SizedBox(width: 6),
+                                    Text('自動控制設定'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                        icon: const Icon(
+                          Icons.more_vert,
+                          color: Colors.black54,
+                        ),
+                      ),
                   ],
                 ),
 
-              // SizedBox(height: 0.8.h),
+                SizedBox(height: 0.5.h),
 
-              // 功能名稱，不換行，自動縮小
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  featureName,
-                  style: TextStyle(
-                    fontSize: 17.5.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                // 中：主體 (Expanded 撐開)
+                Expanded(
+                  child: Center(
+                    child:
+                        isActuator
+                            ? Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  isSwitchOn ? 'ON' : 'OFF',
+                                  style: TextStyle(
+                                    fontSize: 18.sp,
+                                    color:
+                                        isSwitchOn ? Colors.green : Colors.red,
+                                  ),
+                                ),
+                                SizedBox(height: 0.8.h),
+                                Switch(
+                                  value: isSwitchOn,
+                                  onChanged:
+                                      _isSwitchLoading
+                                          ? null
+                                          : (bool newValue) async {
+                                            // 原本的 switchSetting 邏輯
+                                          },
+                                ),
+                              ],
+                            )
+                            : Align(
+                              alignment: Alignment.bottomCenter,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(2.w),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade50,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      iconData,
+                                      size: 9.w,
+                                      color: const Color(0xFF065B4C),
+                                    ),
+                                  ),
+                                  SizedBox(height: 0.2.h),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      value,
+                                      style: TextStyle(
+                                        fontSize: 18.sp,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                   ),
-                  maxLines: 1,
                 ),
-              ),
 
-              // SizedBox(height: 0.5.h),
-              Text(
-                time,
-                style: TextStyle(fontSize: 14.0.sp, color: Colors.grey),
-              ),
-              if (!isCamera && !isActuator)
+                SizedBox(height: 0.2.h),
+
+                // 下：名稱 + 時間 + 查看歷史
                 FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: TextButton(
+                  child: Text(
+                    featureName,
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                  ),
+                ),
+                Text(
+                  time,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14.sp, color: Colors.grey),
+                ),
+                if (!isCamera)
+                  TextButton(
                     onPressed: () => _viewHistory(context, obs),
                     style: TextButton.styleFrom(
                       foregroundColor: const Color(0xFF065B4C),
                       padding: EdgeInsets.zero,
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      textStyle: TextStyle(
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
                     ),
                     child: const Text('查看歷史資料'),
                   ),
-                ),
-
-              if (isActuator)
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: TextButton(
-                    onPressed: () => _viewAutoControl(context, obs),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF065B4C),
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      textStyle: TextStyle(
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    child: const Text('自動控制設定'),
-                  ),
-                ),
-            ],
+              ],
+            ),
           ),
         );
       },
     );
   }
-
 
   Widget _buildNonCameraListByDeviceSliver() {
     return SliverList(
@@ -543,143 +519,190 @@ class _DashboardPageState extends State<DashboardPage> {
 
     return Padding(
       padding: EdgeInsets.only(bottom: 1.2.h),
-      child: Container(
-        padding: EdgeInsets.all(3.w),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(3.w),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 4,
-              offset: const Offset(2, 2),
-            ),
-          ],
-          border: Border.all(color: Colors.blue.shade100, width: 0.5.w),
-        ),
-        child: StatefulBuilder(
-          builder: (context, setInner) {
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  padding: EdgeInsets.all(2.6.w),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    shape: BoxShape.circle,
+      child: GestureDetector(
+        onLongPress: isActuator ? () => _viewAutoControl(context, obs) : null,
+        child: Container(
+          padding: EdgeInsets.all(3.w),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(3.w),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 4,
+                offset: const Offset(2, 2),
+              ),
+            ],
+            border: Border.all(color: Colors.blue.shade100, width: 0.5.w),
+          ),
+          child: StatefulBuilder(
+            builder: (context, setInner) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(2.6.w),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      iconData,
+                      size: 7.w,
+                      color: const Color(0xFF065B4C),
+                    ),
                   ),
-                  child: Icon(
-                    iconData,
-                    size: 7.w,
-                    color: const Color(0xFF065B4C),
-                  ),
-                ),
-                SizedBox(width: 3.w),
+                  SizedBox(width: 3.w),
 
-                // 中：只顯示 featureName
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 只顯示功能名稱
-                      Text(
-                        featureName,
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(height: 0.3.h),
-                      Text(
-                        '編號：$serialId   |   $time',
-                        style: TextStyle(
-                          fontSize: 13.5.sp,
-                          color: Colors.black54,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (!isActuator) ...[
-                        SizedBox(height: 0.3.h),
+                  // 中：只顯示 featureName
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 功能名稱
                         Text(
-                          valueRaw,
+                          featureName,
                           style: TextStyle(
                             fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w700,
                             color: Colors.black87,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        SizedBox(height: 0.3.h),
+                        Text(
+                          '編號：$serialId   |   $time',
+                          style: TextStyle(
+                            fontSize: 13.5.sp,
+                            color: Colors.black54,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (!isActuator) ...[
+                          SizedBox(height: 0.3.h),
+                          Text(
+                            valueRaw,
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
-                ),
-
-                // 右：控制或動作
-                if (isActuator)
-                  Switch(
-                    value: isSwitchOn,
-                    activeColor: Colors.blue,
-                    inactiveThumbColor: Colors.grey,
-                    onChanged:
-                        _isSwitchLoading
-                            ? null
-                            : (bool newValue) async {
-                              setInner(() => _isSwitchLoading = true);
-                              final success = await apiService.switchSetting(
-                                deviceUUID: obs['deviceUUID'],
-                                featureEnglishName: obs['featureEnglishName'],
-                                serialId: serialId,
-                                newValue: newValue,
-                              );
-                              if (success && context.mounted) {
-                                setInner(() {
-                                  obs['value'] = newValue.toString();
-                                  isSwitchOn = newValue;
-                                });
-                              }
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(success ? '開關成功' : '送出失敗'),
-                                  ),
-                                );
-                              }
-                              setInner(() => _isSwitchLoading = false);
-                            },
-                  )
-                else
-                  TextButton(
-                    onPressed: () => _viewHistory(context, obs),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF065B4C),
-                      textStyle: TextStyle(
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
                     ),
-                    child: const Text('查看歷史'),
                   ),
 
-                if (isActuator)
-                  TextButton(
-                    onPressed: () => _viewAutoControl(context, obs),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF065B4C),
-                      textStyle: TextStyle(
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.bold,
+                  // 右：Actuator（Switch + ⋮）或 非 Actuator（查看歷史）
+                  if (isActuator)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Switch(
+                              value: isSwitchOn,
+                              activeColor: Colors.blue,
+                              inactiveThumbColor: Colors.grey,
+                              onChanged:
+                                  _isSwitchLoading
+                                      ? null
+                                      : (bool newValue) async {
+                                        setInner(() => _isSwitchLoading = true);
+                                        final success = await apiService
+                                            .switchSetting(
+                                              deviceUUID: obs['deviceUUID'],
+                                              featureEnglishName:
+                                                  obs['featureEnglishName'],
+                                              serialId: serialId,
+                                              newValue: newValue,
+                                            );
+                                        if (success && context.mounted) {
+                                          setInner(() {
+                                            obs['value'] = newValue.toString();
+                                            isSwitchOn = newValue;
+                                          });
+                                        }
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                success ? '開關成功' : '送出失敗',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                        setInner(
+                                          () => _isSwitchLoading = false,
+                                        );
+                                      },
+                            ),
+                            PopupMenuButton<String>(
+                              tooltip: '更多',
+                              onSelected: (key) {
+                                if (key == 'auto') {
+                                  _viewAutoControl(context, obs);
+                                }
+                              },
+                              itemBuilder:
+                                  (context) => const [
+                                    PopupMenuItem(
+                                      value: 'auto',
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.settings_suggest_rounded,
+                                            size: 18,
+                                          ),
+                                          SizedBox(width: 6),
+                                          Text('自動控制設定'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                              icon: const Icon(
+                                Icons.more_vert,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                        TextButton(
+                          onPressed: () => _viewHistory(context, obs),
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFF065B4C),
+                            textStyle: TextStyle(
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          child: const Text('查看歷史'),
+                        ),
+                      ],
+                    )
+                  else
+                    TextButton(
+                      onPressed: () => _viewHistory(context, obs),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF065B4C),
+                        textStyle: TextStyle(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                      child: const Text('查看歷史'),
                     ),
-                    child: const Text('自動控制'),
-                  ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
       ),
     );

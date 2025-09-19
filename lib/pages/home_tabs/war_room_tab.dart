@@ -319,7 +319,7 @@ class _WarRoomTabState extends State<WarRoomTab> {
                             ),
                             leading: const Icon(
                               Icons.hub,
-                              color: Colors.deepPurple,
+                              color: const Color(0xFF065B4C),
                             ),
                             title: Text(
                               sysName,
@@ -418,7 +418,7 @@ class _WarRoomTabState extends State<WarRoomTab> {
                               });
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.deepPurple,
+                              backgroundColor: const Color(0xFF065B4C),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -449,7 +449,7 @@ class _WarRoomTabState extends State<WarRoomTab> {
                               style: const TextStyle(color: Colors.white),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.deepPurple,
+                              backgroundColor: const Color(0xFF065B4C),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -561,7 +561,7 @@ class _WarRoomTabState extends State<WarRoomTab> {
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   foregroundColor: Colors.white,
-                                  backgroundColor: Colors.deepPurple,
+                                  backgroundColor: const Color(0xFF065B4C),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(24),
                                   ),
