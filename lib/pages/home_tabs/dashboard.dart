@@ -362,7 +362,38 @@ class _DashboardPageState extends State<DashboardPage> {
                                       _isSwitchLoading
                                           ? null
                                           : (bool newValue) async {
-                                            // 原本的 switchSetting 邏輯
+                                            setInnerState(
+                                              () => _isSwitchLoading = true,
+                                            );
+                                            final success = await apiService
+                                                .switchSetting(
+                                                  deviceUUID: obs['deviceUUID'],
+                                                  featureEnglishName:
+                                                      obs['featureEnglishName'],
+                                                  serialId: serialId,
+                                                  newValue: newValue,
+                                                );
+                                            if (success && context.mounted) {
+                                              setInnerState(() {
+                                                obs['value'] =
+                                                    newValue.toString();
+                                                isSwitchOn = newValue;
+                                              });
+                                            }
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    success ? '開關成功' : '送出失敗',
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                            setInnerState(
+                                              () => _isSwitchLoading = false,
+                                            );
                                           },
                                 ),
                               ],
@@ -599,95 +630,132 @@ class _DashboardPageState extends State<DashboardPage> {
 
                   // 右：Actuator（Switch + ⋮）或 非 Actuator（查看歷史）
                   if (isActuator)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Switch(
-                              value: isSwitchOn,
-                              activeColor: Colors.blue,
-                              inactiveThumbColor: Colors.grey,
-                              onChanged:
-                                  _isSwitchLoading
-                                      ? null
-                                      : (bool newValue) async {
-                                        setInner(() => _isSwitchLoading = true);
-                                        final success = await apiService
-                                            .switchSetting(
-                                              deviceUUID: obs['deviceUUID'],
-                                              featureEnglishName:
-                                                  obs['featureEnglishName'],
-                                              serialId: serialId,
-                                              newValue: newValue,
-                                            );
-                                        if (success && context.mounted) {
-                                          setInner(() {
-                                            obs['value'] = newValue.toString();
-                                            isSwitchOn = newValue;
-                                          });
-                                        }
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                success ? '開關成功' : '送出失敗',
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                        setInner(
-                                          () => _isSwitchLoading = false,
-                                        );
-                                      },
-                            ),
-                            PopupMenuButton<String>(
-                              tooltip: '更多',
-                              onSelected: (key) {
-                                if (key == 'auto') {
-                                  _viewAutoControl(context, obs);
-                                }
-                              },
-                              itemBuilder:
-                                  (context) => const [
-                                    PopupMenuItem(
-                                      value: 'auto',
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.settings_suggest_rounded,
-                                            size: 18,
-                                          ),
-                                          SizedBox(width: 6),
-                                          Text('自動控制設定'),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                              icon: const Icon(
-                                Icons.more_vert,
-                                color: Colors.black54,
+                    SizedBox(
+                      width: 34.w, // ← 固定右側寬度，避免擠壓、跳動（可依實機調 28~36.w）
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // 用 Theme + Transform 規格化 Switch 尺寸與外距
+                              Theme(
+                                data: Theme.of(context).copyWith(
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                                child: Transform.scale(
+                                  scale: 0.9, // ← 視覺稍微縮小，避免超高
+                                  child: Switch.adaptive(
+                                    value: isSwitchOn,
+                                    onChanged:
+                                        _isSwitchLoading
+                                            ? null
+                                            : (bool newValue) async {
+                                              setInner(
+                                                () => _isSwitchLoading = true,
+                                              );
+                                              final success = await apiService
+                                                  .switchSetting(
+                                                    deviceUUID:
+                                                        obs['deviceUUID'],
+                                                    featureEnglishName:
+                                                        obs['featureEnglishName'],
+                                                    serialId: serialId,
+                                                    newValue: newValue,
+                                                  );
+                                              if (success && context.mounted) {
+                                                setInner(() {
+                                                  obs['value'] =
+                                                      newValue.toString();
+                                                  isSwitchOn = newValue;
+                                                });
+                                              }
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      success ? '開關成功' : '送出失敗',
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                              setInner(
+                                                () => _isSwitchLoading = false,
+                                              );
+                                            },
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        TextButton(
-                          onPressed: () => _viewHistory(context, obs),
-                          style: TextButton.styleFrom(
-                            foregroundColor: const Color(0xFF065B4C),
-                            textStyle: TextStyle(
-                              fontSize: 15.sp,
-                              fontWeight: FontWeight.bold,
+
+                              const SizedBox(width: 6),
+
+                              // ⋮ 的按鈕收斂尺寸，避免吃掉佈局
+                              SizedBox(
+                                height: 40,
+                                width: 40,
+                                child: PopupMenuButton<String>(
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 160,
+                                  ),
+                                  tooltip: '更多',
+                                  onSelected: (key) {
+                                    if (key == 'auto')
+                                      _viewAutoControl(context, obs);
+                                  },
+                                  itemBuilder:
+                                      (context) => const [
+                                        PopupMenuItem(
+                                          value: 'auto',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.settings_suggest_rounded,
+                                                size: 18,
+                                              ),
+                                              SizedBox(width: 6),
+                                              Text('自動控制設定'),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                  icon: const Icon(
+                                    Icons.more_vert,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          // 讓「查看歷史」對齊靠右且不撐寬
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: () => _viewHistory(context, obs),
+                              style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFF065B4C),
+                                padding: EdgeInsets.zero,
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                textStyle: TextStyle(
+                                  fontSize: 15.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              child: const Text('查看歷史'),
                             ),
                           ),
-                          child: const Text('查看歷史'),
-                        ),
-                      ],
+                        ],
+                      ),
                     )
                   else
+                    // 非 Actuator 維持原本作法
                     TextButton(
                       onPressed: () => _viewHistory(context, obs),
                       style: TextButton.styleFrom(
