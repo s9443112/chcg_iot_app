@@ -33,6 +33,62 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>?> register({
+    required String username,
+    required String email,
+    String firstName = '',
+    String lastName = '',
+    String jobTitle = '',
+    String phone = '',
+    String? fcmToken, // 可為 null
+    String? password, // 若後端開放自訂密碼可帶，否則留空
+    String? confirmPassword, // 同上
+  }) async {
+    final url = Uri.parse('$baseUrl/odata/api/v1-Odata/account/register');
+
+    // 後端序列化器鍵名（snake_case）要對上
+    final payload = <String, dynamic>{
+      'username': username,
+      'email': email,
+      'first_name': firstName,
+      'last_name': lastName,
+      'job_title': jobTitle,
+      'phone': phone,
+      // 'unit': unit,
+      if (fcmToken != null) 'fcm_token': fcmToken,
+      if (password != null) 'password': password,
+      if (confirmPassword != null) 'confirm_password': confirmPassword,
+    };
+
+    final res = await http.post(
+      url,
+      headers: const {
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: jsonEncode(payload),
+    );
+
+    // 成功：201（或 200）
+    if (res.statusCode == 201 || res.statusCode == 200) {
+      return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    }
+
+    // 失敗：盡量回傳後端錯誤訊息格式（可能是 {"errors": {...}} 或 {"error": "..."}）
+    try {
+      final body = jsonDecode(utf8.decode(res.bodyBytes));
+      if (body is Map<String, dynamic>) {
+        return {
+          'error': body['error'] ?? body['errors'] ?? '註冊失敗',
+          'status': res.statusCode,
+        };
+      }
+    } catch (_) {
+      // ignore json parse error
+    }
+    return {'error': '註冊失敗：${res.statusCode}', 'status': res.statusCode};
+  }
+
   Future<Map<String, dynamic>?> account(String token) async {
     final url = Uri.parse('$baseUrl/odata/api/v1-Odata/account');
     final response = await http.get(
@@ -868,7 +924,10 @@ class ApiService {
 
     // 如果失敗且 controlBase 包含 camctrl，就改成 eCamCtrl 再試一次
     if (!success && controlBase.contains('camctrl.cgi')) {
-      final fallbackBase = controlBase.replaceFirst('camctrl.cgi', 'eCamCtrl.cgi');
+      final fallbackBase = controlBase.replaceFirst(
+        'camctrl.cgi',
+        'eCamCtrl.cgi',
+      );
       final fallbackUrl = '$fallbackBase?move=$direction&channel=0&stream=0';
       print('[cameraMove] Retry URL: $fallbackUrl');
 
@@ -901,7 +960,10 @@ class ApiService {
 
     // 如果失敗且 controlBase 包含 camctrl，就改成 eCamCtrl 再試一次
     if (!success && controlBase.contains('camctrl.cgi')) {
-      final fallbackBase = controlBase.replaceFirst('camctrl.cgi', 'eCamCtrl.cgi');
+      final fallbackBase = controlBase.replaceFirst(
+        'camctrl.cgi',
+        'eCamCtrl.cgi',
+      );
       final fallbackUrl = '$fallbackBase?zoom=$action&channel=0&stream=0';
       print('[cameraZoom] Retry URL: $fallbackUrl');
 

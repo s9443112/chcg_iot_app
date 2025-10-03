@@ -13,7 +13,12 @@ class GrapeObservationPage extends StatefulWidget {
 
 class _GrapeObservationPageState extends State<GrapeObservationPage> {
   final apiService = ApiService();
-  final groupUUID = '3f72eb66-32e2-4241-8a72-58c235ac6164';
+
+  /// ✅ 多個地點（UUID＋顯示名稱）
+  final List<Map<String, String>> groups = const [
+    {'uuid': 'f42a1553-591f-4ad7-8167-ae1ed4e6b6cd', 'label': '彰化縣溪湖鄉葡萄'},
+    {'uuid': '7e98412d-117e-4fff-86a3-d0bd506173fe', 'label': '彰化縣大村鄉葡萄'},
+  ];
 
   DateTime startTime = DateTime.now().subtract(const Duration(days: 1));
   DateTime endTime = DateTime.now().add(const Duration(days: 1));
@@ -36,7 +41,7 @@ class _GrapeObservationPageState extends State<GrapeObservationPage> {
     'Wind Speed': '風速',
   };
 
-  final List<String> features = [
+  final List<String> features = const [
     'Temperature',
     'Humidity',
     'Illuminance',
@@ -50,7 +55,10 @@ class _GrapeObservationPageState extends State<GrapeObservationPage> {
     'Potential of Hydrogen',
   ];
 
-  Map<String, List<ChartData>> chartDataMap = {};
+  /// feature → (seriesName → data points)
+  Map<String, Map<String, List<ChartData>>> groupSeriesByFeature = {};
+
+  /// 我的資料（feature → data points）
   Map<String, List<ChartData>> myChartDataMap = {};
   final tooltipBehavior = TooltipBehavior(enable: true);
 
@@ -62,34 +70,42 @@ class _GrapeObservationPageState extends State<GrapeObservationPage> {
 
   Future<void> _fetchAll() async {
     setState(() => loading = true);
-    Map<String, List<ChartData>> groupDataMap = {};
-    Map<String, List<ChartData>> mineDataMap = {};
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
 
-    for (String feature in features) {
-      // ✅ 取群組資料
-      final data = await apiService.fetchGroupObservation(
-        groupUUID: groupUUID,
-        featureEnglishName: feature,
-        startTime: startTime,
-        endTime: endTime,
-        aggregate: "hours",
-      );
+    final Map<String, Map<String, List<ChartData>>> nextGroupSeries = {};
+    final Map<String, List<ChartData>> nextMyData = {};
 
-      groupDataMap[feature] =
-          data
-              ?.map<ChartData>(
-                (item) => ChartData(
-                  DateTime.parse(item['time']),
-                  double.tryParse(item['value'].toString()) ?? 0,
-                ),
-              )
-              .toList() ??
-          [];
+    for (final feature in features) {
+      // 先準備此 feature 的群組 series 容器
+      nextGroupSeries[feature] = {};
 
-      // ✅ 取自己的資料（已登入）
+      // 逐地點抓群組資料
+      for (final g in groups) {
+        final uuid = g['uuid']!;
+        final label = g['label']!;
+
+        final data = await apiService.fetchGroupObservation(
+          groupUUID: uuid,
+          featureEnglishName: feature,
+          startTime: startTime,
+          endTime: endTime,
+          aggregate: "hours",
+        );
+
+        nextGroupSeries[feature]![label] =
+            (data ?? [])
+                .map<ChartData>(
+                  (item) => ChartData(
+                    DateTime.parse(item['time']),
+                    double.tryParse(item['value'].toString()) ?? 0,
+                  ),
+                )
+                .toList();
+      }
+
+      // ✅ 如果已登入，抓「我的資料」
       if (token != null && token.isNotEmpty && token != 'GUEST_MODE') {
         final mydata = await apiService.fetchMineRawData(
           featureEnglishName: feature,
@@ -98,22 +114,23 @@ class _GrapeObservationPageState extends State<GrapeObservationPage> {
           aggregate: "hours",
         );
 
-        mineDataMap[feature] =
-            mydata
-                ?.map<ChartData>(
+        nextMyData[feature] =
+            (mydata ?? [])
+                .map<ChartData>(
                   (item) => ChartData(
                     DateTime.parse(item['time']),
                     double.tryParse(item['value'].toString()) ?? 0,
                   ),
                 )
-                .toList() ??
-            [];
+                .toList();
+      } else {
+        nextMyData[feature] = const [];
       }
     }
 
     setState(() {
-      chartDataMap = groupDataMap;
-      myChartDataMap = mineDataMap;
+      groupSeriesByFeature = nextGroupSeries;
+      myChartDataMap = nextMyData;
       loading = false;
     });
   }
@@ -184,12 +201,14 @@ class _GrapeObservationPageState extends State<GrapeObservationPage> {
                       itemCount: features.length,
                       itemBuilder: (context, index) {
                         final feature = features[index];
+                        final seriesMap = groupSeriesByFeature[feature] ?? {};
+                        final myData = myChartDataMap[feature] ?? const [];
 
                         return FeatureChart(
                           feature: feature,
                           title: featureNameMap[feature] ?? feature,
-                          data: chartDataMap[feature] ?? [],
-                          myData: myChartDataMap[feature] ?? [],
+                          groupSeries: seriesMap, // 多條群組線
+                          myData: myData, // 我的數據
                         );
                       },
                     ),
@@ -203,13 +222,18 @@ class _GrapeObservationPageState extends State<GrapeObservationPage> {
 class FeatureChart extends StatefulWidget {
   final String feature;
   final String title;
-  final List<ChartData> data;
+
+  /// 群組多地點的 series：key=地點名稱、value=資料點
+  final Map<String, List<ChartData>> groupSeries;
+
+  /// 我的資料（若有登入）
   final List<ChartData> myData;
+
   const FeatureChart({
     super.key,
     required this.feature,
     required this.title,
-    required this.data,
+    required this.groupSeries,
     required this.myData,
   });
 
@@ -231,6 +255,41 @@ class _FeatureChartState extends State<FeatureChart>
   Widget build(BuildContext context) {
     super.build(context); // for AutomaticKeepAliveClientMixin
 
+    // 準備要畫的 series（群組多條 + 我的數據一條）
+    final List<CartesianSeries<ChartData, DateTime>> seriesList = [];
+
+    // 群組多條（不同地點）
+    widget.groupSeries.forEach((label, points) {
+      if (points.isEmpty) return;
+      seriesList.add(
+        LineSeries<ChartData, DateTime>(
+          dataSource: points,
+          xValueMapper: (d, _) => d.time,
+          yValueMapper: (d, _) => d.value,
+          width: 2,
+          name: '$label',
+          markerSettings: const MarkerSettings(isVisible: false),
+        ),
+      );
+    });
+
+    // 我的數據
+    if (widget.myData.isNotEmpty) {
+      seriesList.add(
+        LineSeries<ChartData, DateTime>(
+          dataSource: widget.myData,
+          xValueMapper: (d, _) => d.time,
+          yValueMapper: (d, _) => d.value,
+          width: 2,
+          name: '我的數據',
+          markerSettings: const MarkerSettings(isVisible: false),
+        ),
+      );
+    }
+
+    final hasAnyData =
+        seriesList.whereType<LineSeries<ChartData, DateTime>>().isNotEmpty;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Card(
@@ -249,54 +308,34 @@ class _FeatureChartState extends State<FeatureChart>
                 ),
               ),
               const SizedBox(height: 12),
-              widget.data.isEmpty
-                  ? const Text('查無資料', style: TextStyle(color: Colors.grey))
-                  : SizedBox(
-                    height: 240,
-                    child: SfCartesianChart(
-                      tooltipBehavior: tooltipBehavior,
-                      primaryXAxis: DateTimeAxis(
-                        dateFormat: DateFormat('MM/dd HH:mm'),
-                        intervalType: DateTimeIntervalType.auto,
-                      ),
-                      primaryYAxis: NumericAxis(
-                        majorGridLines: const MajorGridLines(width: 0.3),
-                      ),
-                      zoomPanBehavior: ZoomPanBehavior(
-                        enablePinching: true,
-                        enablePanning: true,
-                        enableDoubleTapZooming: true,
-                      ),
-                      series: <CartesianSeries>[
-                        // 群組資料線
-                        LineSeries<ChartData, DateTime>(
-                          dataSource: widget.data,
-                          xValueMapper: (ChartData d, _) => d.time,
-                          yValueMapper: (ChartData d, _) => d.value,
-                          color: Colors.indigo,
-                          width: 2,
-                          name: '群組平均',
-                          markerSettings: const MarkerSettings(
-                            isVisible: false,
-                          ),
-                        ),
-                        // 我的資料線
-                        if (widget.myData.isNotEmpty)
-                          LineSeries<ChartData, DateTime>(
-                            dataSource: widget.myData,
-                            xValueMapper: (ChartData d, _) => d.time,
-                            yValueMapper: (ChartData d, _) => d.value,
-                            color: Colors.orange,
-                            width: 2,
-                            name: '我的數據',
-                            markerSettings: const MarkerSettings(
-                              isVisible: false,
-                            ),
-                          ),
-                      ],
-                      legend: Legend(isVisible: true),
+              if (!hasAnyData)
+                const Text('查無資料', style: TextStyle(color: Colors.grey))
+              else
+                SizedBox(
+                  height: 240,
+                  child: SfCartesianChart(
+                    tooltipBehavior: tooltipBehavior,
+                    primaryXAxis: DateTimeAxis(
+                      dateFormat: DateFormat('MM/dd HH:mm'),
+                      intervalType: DateTimeIntervalType.auto,
+                    ),
+                    primaryYAxis: NumericAxis(
+                      majorGridLines: const MajorGridLines(width: 0.3),
+                    ),
+                    zoomPanBehavior: ZoomPanBehavior(
+                      enablePinching: true,
+                      enablePanning: true,
+                      enableDoubleTapZooming: true,
+                    ),
+                    series: seriesList,
+                    legend: Legend(
+                      isVisible: true,
+                      position: LegendPosition.bottom,
+                      overflowMode: LegendItemOverflowMode.wrap, // ✅ 允許換行
+                      toggleSeriesVisibility: true, // 點 Legend 可顯示/隱藏
                     ),
                   ),
+                ),
             ],
           ),
         ),

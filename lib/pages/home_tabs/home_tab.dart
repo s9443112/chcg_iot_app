@@ -115,36 +115,36 @@ class _HomeTabState extends State<HomeTab> {
         'image': 'assets/homepage/grape.jpg',
         'url': null,
       },
-      {
-        'title': '白粉病檢測',
-        'subtitle': '進入白粉病檢測平台',
-        'image': 'assets/homepage/detection.png',
-        'url': null,
-      },
-      {
-        'title': '防檢署藥劑',
-        'subtitle': '查看藥劑資料',
-        'image': 'assets/homepage/drug.png',
-        'url': 'https://www.aphia.gov.tw/',
-      },
-      {
-        'title': '農糧署',
-        'subtitle': '農糧署服務',
-        'image': 'assets/homepage/agriculture.jpg',
-        'url': 'https://www.afa.gov.tw/cht/index.php?code=list&ids=556',
-      },
-      {
-        'title': '彰化縣政府',
-        'subtitle': '地方政府平台',
-        'image': 'assets/homepage/changhua.png',
-        'url': 'https://www.chcg.gov.tw/ch2/index.aspx',
-      },
-      {
-        'title': '農譯科技',
-        'subtitle': '進入農譯科技',
-        'image': 'assets/homepage/agritalk.png',
-        'url': 'https://www.agritalk.com.tw/',
-      },
+      // {
+      //   'title': '白粉病檢測',
+      //   'subtitle': '進入白粉病檢測平台',
+      //   'image': 'assets/homepage/detection.png',
+      //   'url': null,
+      // },
+      // {
+      //   'title': '防檢署藥劑',
+      //   'subtitle': '查看藥劑資料',
+      //   'image': 'assets/homepage/drug.png',
+      //   'url': 'https://www.aphia.gov.tw/',
+      // },
+      // {
+      //   'title': '農糧署',
+      //   'subtitle': '農糧署服務',
+      //   'image': 'assets/homepage/agriculture.jpg',
+      //   'url': 'https://www.afa.gov.tw/cht/index.php?code=list&ids=556',
+      // },
+      // {
+      //   'title': '彰化縣政府',
+      //   'subtitle': '地方政府平台',
+      //   'image': 'assets/homepage/changhua.png',
+      //   'url': 'https://www.chcg.gov.tw/ch2/index.aspx',
+      // },
+      // {
+      //   'title': '農譯科技',
+      //   'subtitle': '進入農譯科技',
+      //   'image': 'assets/homepage/agritalk.png',
+      //   'url': 'https://www.agritalk.com.tw/',
+      // },
     ];
 
     return SizedBox(

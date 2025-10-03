@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/api_service.dart';
-// import 'package:firebase_core/firebase_core.dart';
-// import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:agritalk_iot_app/register_page.dart'; // 註冊畫面
+// import 'package:forgot_password_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -16,7 +16,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController passwordController = TextEditingController();
   final ApiService apiService = ApiService();
 
-  bool _rememberMe = false; // <-- 多一個記憶密碼選項
+  bool _rememberMe = false;
 
   @override
   void initState() {
@@ -33,7 +33,7 @@ class _LoginPageState extends State<LoginPage> {
       setState(() {
         usernameController.text = savedUsername;
         passwordController.text = savedPassword;
-        _rememberMe = true; // 有存過的話自動打勾
+        _rememberMe = true;
       });
     }
   }
@@ -41,7 +41,6 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _login(BuildContext context, {bool isGuest = false}) async {
     final username = isGuest ? 'guest' : usernameController.text;
     final password = isGuest ? 'guest' : passwordController.text;
-    // String? fcm_token = await FirebaseMessaging.instance.getToken();
     String? fcm_token = "";
     final result = await apiService.login(username, password, fcm_token);
     if (result != null && result['token'] != null) {
@@ -74,7 +73,6 @@ class _LoginPageState extends State<LoginPage> {
         child: Padding(
           padding: const EdgeInsets.all(32.0),
           child: SingleChildScrollView(
-            // ← 防止鍵盤彈出時overflow
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -117,6 +115,25 @@ class _LoginPageState extends State<LoginPage> {
                     Navigator.pushReplacementNamed(context, '/home');
                   },
                   child: const Text('訪客瀏覽'),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const RegisterPage()),
+                    );
+                  },
+                  child: const Text('註冊新帳號'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    // Navigator.push(
+                    //   context,
+                    //   MaterialPageRoute(builder: (context) => const ForgotPasswordPage()),
+                    // );
+                  },
+                  child: const Text('忘記密碼？'),
                 ),
               ],
             ),

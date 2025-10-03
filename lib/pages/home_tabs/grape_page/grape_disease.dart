@@ -1,8 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:agritalk_iot_app/core/api_service.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
-import 'dart:async';
+
+import 'package:agritalk_iot_app/core/api_service.dart';
 
 class GrapeDiseasePage extends StatefulWidget {
   const GrapeDiseasePage({super.key});
@@ -13,101 +14,194 @@ class GrapeDiseasePage extends StatefulWidget {
 
 class _GrapeDiseasePageState extends State<GrapeDiseasePage> {
   final apiService = ApiService();
-  final String groupUUID = '3f72eb66-32e2-4241-8a72-58c235ac6164';
 
-  Map<String, dynamic>? thripsData;     // 小黃薊馬
-  Map<String, dynamic>? rotData;        // 晚腐病
-  Map<String, dynamic>? powderyData;    // 白粉病
+  // 兩個場域
+  static const _groupA = _GroupOption(
+    uuid: 'f42a1553-591f-4ad7-8167-ae1ed4e6b6cd',
+    label: '彰化縣溪湖鄉葡萄',
+  );
+  static const _groupB = _GroupOption(
+    uuid: '7e98412d-117e-4fff-86a3-d0bd506173fe',
+    label: '彰化縣大村鄉葡萄',
+  );
 
-  List<ChartData> thripsHistory = [];
-  List<ChartData> rotHistory = [];
-  List<ChartData> powderyHistory = [];
+  // 即時資料（顯示在卡片上方）
+  Map<String, dynamic>? thripsA, rotA, powderyA;
+  Map<String, dynamic>? thripsB, rotB, powderyB;
+
+  // 歷史資料（畫圖）
+  List<ChartData> thripsHistA = [];
+  List<ChartData> thripsHistB = [];
+  List<ChartData> rotHistA = [];
+  List<ChartData> rotHistB = [];
+  List<ChartData> powderyHistA = [];
+  List<ChartData> powderyHistB = [];
 
   bool loading = true;
+  String? loadError;
 
   @override
   void initState() {
     super.initState();
-    fetchScores();
+    _fetchAll();
   }
 
-  Future<void> fetchScores() async {
+  /// 包一層：量測每支 API 的時間並回傳結果
+  Future<T?> _timed<T>({
+    required String label,
+    required Future<T?> Function() run,
+  }) async {
+    final sw = Stopwatch()..start();
     try {
-      // ✅ 即時資料
-      final data1 = await apiService.fetchGroupScore(
-        groupUUID: groupUUID,
-        fruit: '葡萄',
-        disease: '小黃薊馬',
-      );
+      final result = await run();
+      sw.stop();
+      print('[TIMING] $label -> ${sw.elapsedMilliseconds} ms');
+      return result;
+    } catch (e) {
+      sw.stop();
+      print('[TIMING][ERROR] $label -> ${sw.elapsedMilliseconds} ms, error: $e');
+      rethrow;
+    }
+  }
 
-      final data2 = await apiService.fetchGroupScore(
-        groupUUID: groupUUID,
-        fruit: '葡萄',
-        disease: '晚腐病',
-      );
+  Future<void> _fetchAll() async {
+    setState(() {
+      loading = true;
+      loadError = null;
+    });
 
-      final data3 = await apiService.fetchGroupScore(
-        groupUUID: groupUUID,
-        fruit: '葡萄',
-        disease: '白粉病',
-      );
+    try {
+      // 兩個場域 × (即時3 + 歷史3) = 12 支請求併發
+      final futures = await Future.wait([
+        // group A 即時
+        _timed<Map<String, dynamic>?>(
+          label: '${_groupA.label} - 即時 小黃薊馬',
+          run: () => apiService.fetchGroupScore(
+            groupUUID: _groupA.uuid, fruit: '葡萄', disease: '小黃薊馬',
+          ),
+        ),
+        _timed<Map<String, dynamic>?>(
+          label: '${_groupA.label} - 即時 晚腐病',
+          run: () => apiService.fetchGroupScore(
+            groupUUID: _groupA.uuid, fruit: '葡萄', disease: '晚腐病',
+          ),
+        ),
+        _timed<Map<String, dynamic>?>(
+          label: '${_groupA.label} - 即時 白粉病',
+          run: () => apiService.fetchGroupScore(
+            groupUUID: _groupA.uuid, fruit: '葡萄', disease: '白粉病',
+          ),
+        ),
+        // group A 歷史
+        _timed<List<dynamic>?>(
+          label: '${_groupA.label} - 歷史 小黃薊馬',
+          run: () => apiService.fetchGroupScoreHistory(
+            groupUUID: _groupA.uuid, fruit: '葡萄', disease: '小黃薊馬',
+          ),
+        ),
+        _timed<List<dynamic>?>(
+          label: '${_groupA.label} - 歷史 晚腐病',
+          run: () => apiService.fetchGroupScoreHistory(
+            groupUUID: _groupA.uuid, fruit: '葡萄', disease: '晚腐病',
+          ),
+        ),
+        _timed<List<dynamic>?>(
+          label: '${_groupA.label} - 歷史 白粉病',
+          run: () => apiService.fetchGroupScoreHistory(
+            groupUUID: _groupA.uuid, fruit: '葡萄', disease: '白粉病',
+          ),
+        ),
 
-      // ✅ 歷史資料
-      final hist1 = await apiService.fetchGroupScoreHistory(
-        groupUUID: groupUUID,
-        fruit: '葡萄',
-        disease: '小黃薊馬',
-      );
+        // group B 即時
+        _timed<Map<String, dynamic>?>(
+          label: '${_groupB.label} - 即時 小黃薊馬',
+          run: () => apiService.fetchGroupScore(
+            groupUUID: _groupB.uuid, fruit: '葡萄', disease: '小黃薊馬',
+          ),
+        ),
+        _timed<Map<String, dynamic>?>(
+          label: '${_groupB.label} - 即時 晚腐病',
+          run: () => apiService.fetchGroupScore(
+            groupUUID: _groupB.uuid, fruit: '葡萄', disease: '晚腐病',
+          ),
+        ),
+        _timed<Map<String, dynamic>?>(
+          label: '${_groupB.label} - 即時 白粉病',
+          run: () => apiService.fetchGroupScore(
+            groupUUID: _groupB.uuid, fruit: '葡萄', disease: '白粉病',
+          ),
+        ),
+        // group B 歷史
+        _timed<List<dynamic>?>(
+          label: '${_groupB.label} - 歷史 小黃薊馬',
+          run: () => apiService.fetchGroupScoreHistory(
+            groupUUID: _groupB.uuid, fruit: '葡萄', disease: '小黃薊馬',
+          ),
+        ),
+        _timed<List<dynamic>?>(
+          label: '${_groupB.label} - 歷史 晚腐病',
+          run: () => apiService.fetchGroupScoreHistory(
+            groupUUID: _groupB.uuid, fruit: '葡萄', disease: '晚腐病',
+          ),
+        ),
+        _timed<List<dynamic>?>(
+          label: '${_groupB.label} - 歷史 白粉病',
+          run: () => apiService.fetchGroupScoreHistory(
+            groupUUID: _groupB.uuid, fruit: '葡萄', disease: '白粉病',
+          ),
+        ),
+      ]);
 
-      final hist2 = await apiService.fetchGroupScoreHistory(
-        groupUUID: groupUUID,
-        fruit: '葡萄',
-        disease: '晚腐病',
-      );
+      if (!mounted) return;
 
-      final hist3 = await apiService.fetchGroupScoreHistory(
-        groupUUID: groupUUID,
-        fruit: '葡萄',
-        disease: '白粉病',
-      );
+      // 依序取回
+      thripsA = futures[0] as Map<String, dynamic>?;
+      rotA = futures[1] as Map<String, dynamic>?;
+      powderyA = futures[2] as Map<String, dynamic>?;
+
+      final histThripsARaw = futures[3] as List<dynamic>?;
+      final histRotARaw = futures[4] as List<dynamic>?;
+      final histPowderyARaw = futures[5] as List<dynamic>?;
+
+      thripsB = futures[6] as Map<String, dynamic>?;
+      rotB = futures[7] as Map<String, dynamic>?;
+      powderyB = futures[8] as Map<String, dynamic>?;
+
+      final histThripsBRaw = futures[9] as List<dynamic>?;
+      final histRotBRaw = futures[10] as List<dynamic>?;
+      final histPowderyBRaw = futures[11] as List<dynamic>?;
+
+      List<ChartData> toChart(List<dynamic>? raw) {
+        if (raw == null) return [];
+        return raw.map<ChartData>((e) {
+          final t = DateTime.parse(e['time'].toString());
+          final v = double.tryParse(e['score']?.toString() ?? '0') ?? 0.0;
+          return ChartData(t, v);
+        }).toList();
+      }
 
       setState(() {
-        thripsData = data1;
-        rotData = data2;
-        powderyData = data3;
-
-        thripsHistory = (hist1 ?? [])
-            .map<ChartData>((item) => ChartData(
-                  DateTime.parse(item['time'].toString()),
-                  double.tryParse(item['score']?.toString() ?? '0') ?? 0,
-                ))
-            .toList();
-
-        rotHistory = (hist2 ?? [])
-            .map<ChartData>((item) => ChartData(
-                  DateTime.parse(item['time'].toString()),
-                  double.tryParse(item['score']?.toString() ?? '0') ?? 0,
-                ))
-            .toList();
-
-        powderyHistory = (hist3 ?? [])
-            .map<ChartData>((item) => ChartData(
-                  DateTime.parse(item['time'].toString()),
-                  double.tryParse(item['score']?.toString() ?? '0') ?? 0,
-                ))
-            .toList();
-
+        thripsHistA = toChart(histThripsARaw);
+        thripsHistB = toChart(histThripsBRaw);
+        rotHistA = toChart(histRotARaw);
+        rotHistB = toChart(histRotBRaw);
+        powderyHistA = toChart(histPowderyARaw);
+        powderyHistB = toChart(histPowderyBRaw);
         loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         loading = false;
+        loadError = '資料載入失敗：$e';
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('資料載入失敗：$e')),
+        SnackBar(content: Text(loadError!)),
       );
     }
   }
+
+  Future<void> _onRefresh() async => _fetchAll();
 
   Color getRiskColor(double score) {
     if (score >= 75) return Colors.red;
@@ -115,12 +209,18 @@ class _GrapeDiseasePageState extends State<GrapeDiseasePage> {
     return Colors.green;
   }
 
-  /// ✅ 卡片 + 圖表整合
-  Widget buildDiseaseCard(Map<String, dynamic>? data, List<ChartData> history,String title,) {
-    if (data == null) return const SizedBox.shrink();
-
-    final double score = (data['score'] ?? 0).toDouble();
-    final Color riskColor = getRiskColor(score);
+  Widget _buildCombinedCard({
+    required String title,
+    required Map<String, dynamic>? currentA,
+    required Map<String, dynamic>? currentB,
+    required List<ChartData> histA,
+    required List<ChartData> histB,
+    required String labelA,
+    required String labelB,
+  }) {
+    // 分別抓兩邊分數
+    final double scoreA = (currentA?['score'] ?? 0).toDouble();
+    final double scoreB = (currentB?['score'] ?? 0).toDouble();
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
@@ -128,123 +228,112 @@ class _GrapeDiseasePageState extends State<GrapeDiseasePage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.bug_report, color: riskColor, size: 28),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    data['name'] ?? '-',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF065B4C),
-                    ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // 標題
+          Row(
+            children: [
+              const Icon(Icons.bug_report, color: Color(0xFF065B4C)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF065B4C),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.warning_amber_rounded, color: riskColor),
-                const SizedBox(width: 6),
-                Text(
-                  '風險指數：${score.toStringAsFixed(2)}%',
-                  style: TextStyle(fontSize: 15, color: riskColor),
-                ),
-                const Spacer(),
-                Icon(Icons.location_on, color: Colors.indigo),
-                const SizedBox(width: 4),
-                Text(
-                  '${data['city'] ?? ''} ${data['district'] ?? ''}',
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              data['feedback'] ?? '-',
-              style: const TextStyle(fontSize: 15, height: 1.6),
-            ),
-            TextButton.icon(
-              onPressed: () {
-                // 顯示 AlertDialog（初始為 loading）
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) {
-                    return _ChatgptAdviceDialog(
-                      groupUUID: groupUUID,
-                      fruit: data['fruit'] ?? '番石榴',
-                      disease: data['disease'] ?? title,
-                      score: (data['score'] ?? 0).toString(),
-                      apiService: apiService,
-                    );
-                  },
-                );
-              },
-              icon: const Icon(
-                Icons.chat_bubble_outline,
-                color: Color(0xFF065B4C),
               ),
-              label: const Text(
-                '如何防治？',
-                style: TextStyle(
-                  color: Color(0xFF065B4C),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
+            ],
+          ),
+          const SizedBox(height: 12),
 
-            // ✅ 圖表
-            history.isEmpty
-                ? const Text('無歷史資料', style: TextStyle(color: Colors.grey))
-                : SizedBox(
-                    height: 220,
-                    child: SfCartesianChart(
-                      primaryXAxis: DateTimeAxis(
-                        dateFormat: DateFormat('MM/dd'),
-                        intervalType: DateTimeIntervalType.days,
-                      ),
-                      primaryYAxis: NumericAxis(
-                        title: AxisTitle(text: '風險指數(%)'),
-                        minimum: 0,
-                        maximum: 100,
-                      ),
-                      tooltipBehavior: TooltipBehavior(
-                        enable: true,
-                        format: 'point.x : 分數 {point.y}%',
-                      ),
-                      zoomPanBehavior: ZoomPanBehavior(
-                        enablePinching: true,
-                        enablePanning: true,
-                        enableDoubleTapZooming: true,
-                      ),
-                      series: <CartesianSeries>[
-                        LineSeries<ChartData, DateTime>(
-                          dataSource: history,
-                          xValueMapper: (ChartData d, _) => d.time,
-                          yValueMapper: (ChartData d, _) => d.value,
-                          color: riskColor,
-                          markerSettings: const MarkerSettings(isVisible: true),
-                          name: '分數',
-                        ),
-                      ],
-                    ),
+          // 兩個鄉鎮即時分數對照
+          Row(
+            children: [
+              const Icon(Icons.location_on, color: Colors.indigo),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '$labelA：${scoreA.toStringAsFixed(2)}%',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: getRiskColor(scoreA),
+                    fontWeight: FontWeight.w600,
                   ),
-          ],
-        ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Icon(Icons.location_on, color: Colors.indigo),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '$labelB：${scoreB.toStringAsFixed(2)}%',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: getRiskColor(scoreB),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // 圖表（兩條線疊在同一張）
+          (histA.isEmpty && histB.isEmpty)
+              ? const Text('無歷史資料', style: TextStyle(color: Colors.grey))
+              : SizedBox(
+                  height: 260,
+                  child: SfCartesianChart(
+                    legend: const Legend(isVisible: true, position: LegendPosition.bottom),
+                    primaryXAxis: DateTimeAxis(
+                      dateFormat: DateFormat('MM/dd'),
+                      intervalType: DateTimeIntervalType.days,
+                    ),
+                    primaryYAxis: NumericAxis(
+                      title: AxisTitle(text: '風險指數(%)'),
+                      minimum: 0,
+                      maximum: 100,
+                    ),
+                    tooltipBehavior: TooltipBehavior(
+                      enable: true,
+                      format: 'series.name\n{point.x} : {point.y}%',
+                    ),
+                    zoomPanBehavior: ZoomPanBehavior(
+                      enablePinching: true,
+                      enablePanning: true,
+                      enableDoubleTapZooming: true,
+                    ),
+                    series: <CartesianSeries>[
+                      LineSeries<ChartData, DateTime>(
+                        name: labelA,
+                        dataSource: histA,
+                        xValueMapper: (ChartData d, _) => d.time,
+                        yValueMapper: (ChartData d, _) => d.value,
+                        // 不指定顏色：交由套件自動分色
+                        markerSettings: const MarkerSettings(isVisible: true),
+                      ),
+                      LineSeries<ChartData, DateTime>(
+                        name: labelB,
+                        dataSource: histB,
+                        xValueMapper: (ChartData d, _) => d.time,
+                        yValueMapper: (ChartData d, _) => d.value,
+                        markerSettings: const MarkerSettings(isVisible: true),
+                      ),
+                    ],
+                  ),
+                ),
+        ]),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final labelA = _groupA.label;
+    final labelB = _groupB.label;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF065B4C),
@@ -252,167 +341,74 @@ class _GrapeDiseasePageState extends State<GrapeDiseasePage> {
         foregroundColor: Colors.white,
         centerTitle: true,
         title: const Text(
-          '葡萄雲 - 病蟲害預測',
+          '葡萄雲 - 病蟲害預測（雙鄉鎮同圖）',
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
         ),
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              children: [
-                buildDiseaseCard(thripsData, thripsHistory, '小黃薊馬'),
-                buildDiseaseCard(rotData, rotHistory, "晚腐病"),
-                buildDiseaseCard(powderyData, powderyHistory, "白粉病"),
-              ],
+          : RefreshIndicator(
+              onRefresh: _onRefresh,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  if (loadError != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Text(loadError!, style: const TextStyle(color: Colors.red)),
+                    ),
+
+                  // 小黃薊馬：兩鄉鎮同一張圖
+                  _buildCombinedCard(
+                    title: '小黃薊馬',
+                    currentA: thripsA,
+                    currentB: thripsB,
+                    histA: thripsHistA,
+                    histB: thripsHistB,
+                    labelA: labelA,
+                    labelB: labelB,
+                  ),
+
+                  // 晚腐病：兩鄉鎮同一張圖
+                  _buildCombinedCard(
+                    title: '晚腐病',
+                    currentA: rotA,
+                    currentB: rotB,
+                    histA: rotHistA,
+                    histB: rotHistB,
+                    labelA: labelA,
+                    labelB: labelB,
+                  ),
+
+                  // 白粉病：兩鄉鎮同一張圖
+                  _buildCombinedCard(
+                    title: '白粉病',
+                    currentA: powderyA,
+                    currentB: powderyB,
+                    histA: powderyHistA,
+                    histB: powderyHistB,
+                    labelA: labelA,
+                    labelB: labelB,
+                  ),
+
+                  const SizedBox(height: 24),
+                ],
+              ),
             ),
     );
   }
 }
 
+// ===== Models & Helpers =====
+
 class ChartData {
   final DateTime time;
   final double value;
-
   ChartData(this.time, this.value);
 }
 
-class _ChatgptAdviceDialog extends StatefulWidget {
-  final String groupUUID;
-  final String fruit;
-  final String disease;
-  final String score;
-  final ApiService apiService;
-
-  const _ChatgptAdviceDialog({
-    required this.groupUUID,
-    required this.fruit,
-    required this.disease,
-    required this.score,
-    required this.apiService,
-  });
-
-  @override
-  State<_ChatgptAdviceDialog> createState() => _ChatgptAdviceDialogState();
-}
-
-class _ChatgptAdviceDialogState extends State<_ChatgptAdviceDialog> {
-  bool isLoading = true;
-  List<String> suggestions = [];
-  late Timer _dotTimer;
-
-  String _thinkingText = 'AI 思考中 .';
-  int _dotCount = 1;
-
-  @override
-  void initState() {
-    super.initState();
-    _startDotAnimation();
-    _loadAdvice();
-  }
-
-  @override
-  void dispose() {
-    _dotTimer.cancel();
-    super.dispose();
-  }
-
-  void _startDotAnimation() {
-    _dotTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
-      if (!mounted) return;
-      setState(() {
-        _dotCount = (_dotCount % 5) + 1;
-        _thinkingText = 'AI 思考中 ${'.' * _dotCount}';
-      });
-    });
-  }
-
-  Future<void> _loadAdvice() async {
-    final result = await widget.apiService.fetchChatgpt(
-      groupUUID: widget.groupUUID,
-      fruit: widget.fruit,
-      disease: widget.disease,
-      score: widget.score,
-    );
-
-    if (!mounted) return;
-
-    if (result != null && result['data'] != null) {
-      final raw = result['data'] as String;
-
-      setState(() {
-        suggestions =
-            raw
-                .split(RegExp(r'\\n|\n'))
-                .map((s) => s.trim())
-                .where((s) => s.isNotEmpty)
-                .toList();
-        isLoading = false;
-      });
-    } else {
-      setState(() {
-        suggestions = ['❌ 無法取得防治建議，請稍後再試。'];
-        isLoading = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text(
-        '建議防治方式',
-        style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF065B4C)),
-      ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      content:
-          isLoading
-              ? SizedBox(
-                height: 120,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _thinkingText,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const CircularProgressIndicator(),
-                  ],
-                ),
-              )
-              : SizedBox(
-                width: double.maxFinite,
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: suggestions.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder:
-                      (_, index) => Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            '• ',
-                            style: TextStyle(fontSize: 16, height: 1.5),
-                          ),
-                          Expanded(
-                            child: Text(
-                              suggestions[index],
-                              style: const TextStyle(fontSize: 15, height: 1.5),
-                            ),
-                          ),
-                        ],
-                      ),
-                ),
-              ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('關閉'),
-        ),
-      ],
-    );
-  }
+class _GroupOption {
+  final String uuid;
+  final String label;
+  const _GroupOption({required this.uuid, required this.label});
 }

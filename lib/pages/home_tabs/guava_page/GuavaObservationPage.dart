@@ -13,7 +13,12 @@ class GuavaObservationPage extends StatefulWidget {
 
 class _GuavaObservationPageState extends State<GuavaObservationPage> {
   final apiService = ApiService();
-  final groupUUID = '7e98412d-117e-4fff-86a3-d0bd506173fe';
+
+  /// ✅ 多個地點（UUID＋顯示名稱）
+  final List<Map<String, String>> groups = const [
+    {'uuid': '9d9c7009-0661-4618-9d13-592f589d49b1', 'label': '彰化縣溪州鄉芭樂'},
+    {'uuid': '3f72eb66-32e2-4241-8a72-58c235ac6164', 'label': '彰化縣社頭鄉芭樂'},
+  ];
 
   DateTime startTime = DateTime.now().subtract(const Duration(days: 1));
   DateTime endTime = DateTime.now().add(const Duration(days: 1));
@@ -36,7 +41,7 @@ class _GuavaObservationPageState extends State<GuavaObservationPage> {
     'Wind Speed': '風速',
   };
 
-  final List<String> features = [
+  final List<String> features = const [
     'Temperature',
     'Humidity',
     'Illuminance',
@@ -50,7 +55,10 @@ class _GuavaObservationPageState extends State<GuavaObservationPage> {
     'Potential of Hydrogen',
   ];
 
-  Map<String, List<ChartData>> chartDataMap = {};
+  /// feature → (seriesName → data points)
+  Map<String, Map<String, List<ChartData>>> groupSeriesByFeature = {};
+
+  /// 我的資料（feature → data points）
   Map<String, List<ChartData>> myChartDataMap = {};
   final tooltipBehavior = TooltipBehavior(enable: true);
 
@@ -62,34 +70,42 @@ class _GuavaObservationPageState extends State<GuavaObservationPage> {
 
   Future<void> _fetchAll() async {
     setState(() => loading = true);
-    Map<String, List<ChartData>> groupDataMap = {};
-    Map<String, List<ChartData>> mineDataMap = {};
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
 
-    for (String feature in features) {
-      // 先取群組資料
-      final data = await apiService.fetchGroupObservation(
-        groupUUID: groupUUID,
-        featureEnglishName: feature,
-        startTime: startTime,
-        endTime: endTime,
-        aggregate: "hours",
-      );
+    final Map<String, Map<String, List<ChartData>>> nextGroupSeries = {};
+    final Map<String, List<ChartData>> nextMyData = {};
 
-      groupDataMap[feature] =
-          data
-              ?.map<ChartData>(
-                (item) => ChartData(
-                  DateTime.parse(item['time']),
-                  double.tryParse(item['value'].toString()) ?? 0,
-                ),
-              )
-              .toList() ??
-          [];
+    for (final feature in features) {
+      // 先準備此 feature 的群組 series 容器
+      nextGroupSeries[feature] = {};
 
-      // ✅ 如果已登入取自己的資料
+      // 逐地點抓群組資料
+      for (final g in groups) {
+        final uuid = g['uuid']!;
+        final label = g['label']!;
+
+        final data = await apiService.fetchGroupObservation(
+          groupUUID: uuid,
+          featureEnglishName: feature,
+          startTime: startTime,
+          endTime: endTime,
+          aggregate: "hours",
+        );
+
+        nextGroupSeries[feature]![label] =
+            (data ?? [])
+                .map<ChartData>(
+                  (item) => ChartData(
+                    DateTime.parse(item['time']),
+                    double.tryParse(item['value'].toString()) ?? 0,
+                  ),
+                )
+                .toList();
+      }
+
+      // ✅ 如果已登入，抓「我的資料」
       if (token != null && token.isNotEmpty && token != 'GUEST_MODE') {
         final mydata = await apiService.fetchMineRawData(
           featureEnglishName: feature,
@@ -98,22 +114,23 @@ class _GuavaObservationPageState extends State<GuavaObservationPage> {
           aggregate: "hours",
         );
 
-        mineDataMap[feature] =
-            mydata
-                ?.map<ChartData>(
+        nextMyData[feature] =
+            (mydata ?? [])
+                .map<ChartData>(
                   (item) => ChartData(
                     DateTime.parse(item['time']),
                     double.tryParse(item['value'].toString()) ?? 0,
                   ),
                 )
-                .toList() ??
-            [];
+                .toList();
+      } else {
+        nextMyData[feature] = const [];
       }
     }
 
     setState(() {
-      chartDataMap = groupDataMap;
-      myChartDataMap = mineDataMap; // ✅ 新增一個 Map
+      groupSeriesByFeature = nextGroupSeries;
+      myChartDataMap = nextMyData;
       loading = false;
     });
   }
@@ -184,12 +201,14 @@ class _GuavaObservationPageState extends State<GuavaObservationPage> {
                       itemCount: features.length,
                       itemBuilder: (context, index) {
                         final feature = features[index];
+                        final seriesMap = groupSeriesByFeature[feature] ?? {};
+                        final myData = myChartDataMap[feature] ?? const [];
 
                         return FeatureChart(
                           feature: feature,
                           title: featureNameMap[feature] ?? feature,
-                          data: chartDataMap[feature] ?? [],
-                          myData: myChartDataMap[feature] ?? [],
+                          groupSeries: seriesMap, // 多條群組線
+                          myData: myData, // 我的數據
                         );
                       },
                     ),
@@ -203,14 +222,18 @@ class _GuavaObservationPageState extends State<GuavaObservationPage> {
 class FeatureChart extends StatefulWidget {
   final String feature;
   final String title;
-  final List<ChartData> data;
-  final List<ChartData> myData; // ✅ 新增
+
+  /// 群組多地點的 series：key=地點名稱、value=資料點
+  final Map<String, List<ChartData>> groupSeries;
+
+  /// 我的資料（若有登入）
+  final List<ChartData> myData;
 
   const FeatureChart({
     super.key,
     required this.feature,
     required this.title,
-    required this.data,
+    required this.groupSeries,
     required this.myData,
   });
 
@@ -232,6 +255,41 @@ class _FeatureChartState extends State<FeatureChart>
   Widget build(BuildContext context) {
     super.build(context); // for AutomaticKeepAliveClientMixin
 
+    // 準備要畫的 series（群組多條 + 我的數據一條）
+    final List<CartesianSeries<ChartData, DateTime>> seriesList = [];
+
+    // 群組多條（不同地點）
+    widget.groupSeries.forEach((label, points) {
+      if (points.isEmpty) return;
+      seriesList.add(
+        LineSeries<ChartData, DateTime>(
+          dataSource: points,
+          xValueMapper: (d, _) => d.time,
+          yValueMapper: (d, _) => d.value,
+          width: 2,
+          name: '$label',
+          markerSettings: const MarkerSettings(isVisible: false),
+        ),
+      );
+    });
+
+    // 我的數據
+    if (widget.myData.isNotEmpty) {
+      seriesList.add(
+        LineSeries<ChartData, DateTime>(
+          dataSource: widget.myData,
+          xValueMapper: (d, _) => d.time,
+          yValueMapper: (d, _) => d.value,
+          width: 2,
+          name: '我的數據',
+          markerSettings: const MarkerSettings(isVisible: false),
+        ),
+      );
+    }
+
+    final hasAnyData =
+        seriesList.whereType<LineSeries<ChartData, DateTime>>().isNotEmpty;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Card(
@@ -250,54 +308,34 @@ class _FeatureChartState extends State<FeatureChart>
                 ),
               ),
               const SizedBox(height: 12),
-              widget.data.isEmpty
-                  ? const Text('查無資料', style: TextStyle(color: Colors.grey))
-                  : SizedBox(
-                    height: 240,
-                    child: SfCartesianChart(
-                      tooltipBehavior: tooltipBehavior,
-                      primaryXAxis: DateTimeAxis(
-                        dateFormat: DateFormat('MM/dd HH:mm'),
-                        intervalType: DateTimeIntervalType.auto,
-                      ),
-                      primaryYAxis: NumericAxis(
-                        majorGridLines: const MajorGridLines(width: 0.3),
-                      ),
-                      zoomPanBehavior: ZoomPanBehavior(
-                        enablePinching: true,
-                        enablePanning: true,
-                        enableDoubleTapZooming: true,
-                      ),
-                      series: <CartesianSeries>[
-                        // 群組資料線
-                        LineSeries<ChartData, DateTime>(
-                          dataSource: widget.data,
-                          xValueMapper: (ChartData d, _) => d.time,
-                          yValueMapper: (ChartData d, _) => d.value,
-                          color: Colors.indigo,
-                          width: 2,
-                          name: '群組平均',
-                          markerSettings: const MarkerSettings(
-                            isVisible: false,
-                          ),
-                        ),
-                        // ✅ 我的資料線
-                        if (widget.myData.isNotEmpty)
-                          LineSeries<ChartData, DateTime>(
-                            dataSource: widget.myData,
-                            xValueMapper: (ChartData d, _) => d.time,
-                            yValueMapper: (ChartData d, _) => d.value,
-                            color: Colors.orange,
-                            width: 2,
-                            name: '我的數據',
-                            markerSettings: const MarkerSettings(
-                              isVisible: false,
-                            ),
-                          ),
-                      ],
-                      legend: Legend(isVisible: true),
+              if (!hasAnyData)
+                const Text('查無資料', style: TextStyle(color: Colors.grey))
+              else
+                SizedBox(
+                  height: 240,
+                  child: SfCartesianChart(
+                    tooltipBehavior: tooltipBehavior,
+                    primaryXAxis: DateTimeAxis(
+                      dateFormat: DateFormat('MM/dd HH:mm'),
+                      intervalType: DateTimeIntervalType.auto,
+                    ),
+                    primaryYAxis: NumericAxis(
+                      majorGridLines: const MajorGridLines(width: 0.3),
+                    ),
+                    zoomPanBehavior: ZoomPanBehavior(
+                      enablePinching: true,
+                      enablePanning: true,
+                      enableDoubleTapZooming: true,
+                    ),
+                    series: seriesList,
+                    legend: Legend(
+                      isVisible: true,
+                      position: LegendPosition.bottom,
+                      overflowMode: LegendItemOverflowMode.wrap, // ✅ 允許換行
+                      toggleSeriesVisibility: true, // 點 Legend 可顯示/隱藏
                     ),
                   ),
+                ),
             ],
           ),
         ),

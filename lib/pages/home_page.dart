@@ -17,7 +17,7 @@ class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
   final List<Widget> _tabs = [
-    // HomeTab(), 
+    HomeTab(), 
     WarRoomTab(), ProfileTab(), AboutTab()];
 
   void _onItemTapped(int index) {
@@ -68,11 +68,11 @@ class _HomePageState extends State<HomePage> {
           selectedIndex: _selectedIndex,
           onDestinationSelected: _onItemTapped,
           destinations: const [
-            // NavigationDestination(
-            //   icon: Icon(Icons.home_outlined),
-            //   selectedIcon: Icon(Icons.home),
-            //   label: '首頁',
-            // ),
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: '首頁',
+            ),
             NavigationDestination(
               icon: Icon(Icons.map_outlined),
               selectedIcon: Icon(Icons.map),
