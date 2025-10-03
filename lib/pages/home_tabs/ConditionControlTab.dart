@@ -574,7 +574,7 @@ class _ConditionControlTabState extends State<ConditionControlTab> {
         onPressed: addConditionDialog,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('新增規則', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF065B4C),
+        backgroundColor: const Color(0xFF7B4DBB),
       ),
     );
   }

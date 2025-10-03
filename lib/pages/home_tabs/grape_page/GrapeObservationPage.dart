@@ -158,7 +158,7 @@ class _GrapeObservationPageState extends State<GrapeObservationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF065B4C),
+        backgroundColor: const Color(0xFF7B4DBB),
         elevation: 0,
         foregroundColor: Colors.white,
         centerTitle: true,

@@ -150,7 +150,7 @@ class _DiseaseAINowPageState extends State<DiseaseAINowPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('即時影像辨識'),
-        backgroundColor: const Color(0xFF065B4C),
+        backgroundColor: const Color(0xFF7B4DBB),
         foregroundColor: Colors.white,
         centerTitle: true,
       ),

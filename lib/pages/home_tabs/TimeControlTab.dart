@@ -367,7 +367,7 @@ class TimeControlTabState extends State<TimeControlTab> {
         onPressed: addScheduleDialog,
         icon: const Icon(Icons.add,color: Colors.white),
         label: const Text('新增排程',style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF065B4C),
+        backgroundColor: const Color(0xFF7B4DBB),
       ),
     );
   }

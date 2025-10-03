@@ -43,8 +43,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'AgriTalk IoT',
       theme: ThemeData(
-        primaryColor: const Color(0xFF065B4C),
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF065B4C)),
+        primaryColor: const Color(0xFF7B4DBB),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF7B4DBB)),
         fontFamily: 'SourceHanSansTW',
         useMaterial3: true, // Material 3！
       ),

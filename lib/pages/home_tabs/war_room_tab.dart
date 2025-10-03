@@ -319,7 +319,7 @@ class _WarRoomTabState extends State<WarRoomTab> {
                             ),
                             leading: const Icon(
                               Icons.hub,
-                              color: const Color(0xFF065B4C),
+                              color: const Color(0xFF7B4DBB),
                             ),
                             title: Text(
                               sysName,
@@ -375,7 +375,7 @@ class _WarRoomTabState extends State<WarRoomTab> {
         ),
 
         centerTitle: true,
-        backgroundColor: const Color(0xFF065B4C),
+        backgroundColor: const Color(0xFF7B4DBB),
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -418,7 +418,7 @@ class _WarRoomTabState extends State<WarRoomTab> {
                               });
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF065B4C),
+                              backgroundColor: const Color(0xFF7B4DBB),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -449,7 +449,7 @@ class _WarRoomTabState extends State<WarRoomTab> {
                               style: const TextStyle(color: Colors.white),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF065B4C),
+                              backgroundColor: const Color(0xFF7B4DBB),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -561,7 +561,7 @@ class _WarRoomTabState extends State<WarRoomTab> {
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   foregroundColor: Colors.white,
-                                  backgroundColor: const Color(0xFF065B4C),
+                                  backgroundColor: const Color(0xFF7B4DBB),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(24),
                                   ),

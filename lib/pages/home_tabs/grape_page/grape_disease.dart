@@ -232,7 +232,7 @@ class _GrapeDiseasePageState extends State<GrapeDiseasePage> {
           // 標題
           Row(
             children: [
-              const Icon(Icons.bug_report, color: Color(0xFF065B4C)),
+              const Icon(Icons.bug_report, color: Color(0xFF7B4DBB)),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -240,7 +240,7 @@ class _GrapeDiseasePageState extends State<GrapeDiseasePage> {
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF065B4C),
+                    color: Color(0xFF7B4DBB),
                   ),
                 ),
               ),
@@ -336,7 +336,7 @@ class _GrapeDiseasePageState extends State<GrapeDiseasePage> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF065B4C),
+        backgroundColor: const Color(0xFF7B4DBB),
         elevation: 0,
         foregroundColor: Colors.white,
         centerTitle: true,
