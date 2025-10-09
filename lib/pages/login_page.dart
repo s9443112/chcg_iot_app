@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/api_service.dart';
-import 'package:agritalk_iot_app/register_page.dart'; // 註冊畫面
+import 'package:chcg_iot_app/register_page.dart'; // 註冊畫面
 // import 'package:forgot_password_page.dart';
 
 class LoginPage extends StatefulWidget {

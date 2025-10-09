@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:agritalk_iot_app/pages/home_tabs/guava_page/GuavaObservationPage.dart';
-import 'package:agritalk_iot_app/pages/home_tabs/guava_page/guava_disease.dart';
+import 'package:chcg_iot_app/pages/home_tabs/guava_page/GuavaObservationPage.dart';
+import 'package:chcg_iot_app/pages/home_tabs/guava_page/guava_disease.dart';
 
 class GuavaPage extends StatelessWidget {
   const GuavaPage({super.key});

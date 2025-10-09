@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
-import 'package:agritalk_iot_app/core/api_service.dart';
+import 'package:chcg_iot_app/core/api_service.dart';
 
 class GrapeDiseasePage extends StatefulWidget {
   const GrapeDiseasePage({super.key});
@@ -18,7 +18,7 @@ class _GrapeDiseasePageState extends State<GrapeDiseasePage> {
   // 兩個場域
   static const _groupA = _GroupOption(
     uuid: 'f42a1553-591f-4ad7-8167-ae1ed4e6b6cd',
-    label: '彰化縣溪湖鄉葡萄',
+    label: '彰化縣溪湖鎮葡萄',
   );
   static const _groupB = _GroupOption(
     uuid: '7e98412d-117e-4fff-86a3-d0bd506173fe',

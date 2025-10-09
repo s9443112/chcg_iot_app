@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:agritalk_iot_app/core/api_service.dart';
+import 'package:chcg_iot_app/core/api_service.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,7 +33,7 @@ class _GuavaObservationPageState extends State<GuavaObservationPage> {
     'Potential of Hydrogen': '酸鹼度',
     'Temperature': '環境溫度',
     'Humidity': '環境相對濕度',
-    'Illuminance': '光照度',
+    'Luminance': '光照度',
     'Photosynthetically Active Radiation': '光合作用有效輻射',
     'Solar Radiation': '太陽輻射度',
     'Carbon Dioxide': '二氧化碳',
@@ -44,7 +44,7 @@ class _GuavaObservationPageState extends State<GuavaObservationPage> {
   final List<String> features = const [
     'Temperature',
     'Humidity',
-    'Illuminance',
+    'Luminance',
     'Photosynthetically Active Radiation',
     'Solar Radiation',
     'Carbon Dioxide',

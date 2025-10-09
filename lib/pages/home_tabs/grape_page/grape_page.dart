@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:agritalk_iot_app/pages/home_tabs/grape_page/GrapeObservationPage.dart';
-import 'package:agritalk_iot_app/pages/home_tabs/grape_page/grape_disease.dart';
+import 'package:chcg_iot_app/pages/home_tabs/grape_page/GrapeObservationPage.dart';
+import 'package:chcg_iot_app/pages/home_tabs/grape_page/grape_disease.dart';
 
 class GrapePage extends StatelessWidget {
   const GrapePage({super.key});

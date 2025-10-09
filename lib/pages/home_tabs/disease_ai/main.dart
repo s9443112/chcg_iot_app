@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:agritalk_iot_app/pages/home_tabs/disease_ai/disease_ai.dart';
-import 'package:agritalk_iot_app/pages/home_tabs/disease_ai/disease_ai_now.dart';
-import 'package:agritalk_iot_app/pages/home_tabs/disease_ai/disease_ai_mine_history.dart';
+import 'package:chcg_iot_app/pages/home_tabs/disease_ai/disease_ai.dart';
+import 'package:chcg_iot_app/pages/home_tabs/disease_ai/disease_ai_now.dart';
+import 'package:chcg_iot_app/pages/home_tabs/disease_ai/disease_ai_mine_history.dart';
 
 class DiseaseAIMainPage extends StatefulWidget {
   const DiseaseAIMainPage({super.key});

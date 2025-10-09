@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:agritalk_iot_app/pages/home_tabs/TimeControlTab.dart';
-import 'package:agritalk_iot_app/pages/home_tabs/ConditionControlTab.dart';
-import 'package:agritalk_iot_app/pages/home_tabs/CycleControlTab.dart';
+import 'package:chcg_iot_app/pages/home_tabs/TimeControlTab.dart';
+import 'package:chcg_iot_app/pages/home_tabs/ConditionControlTab.dart';
+import 'package:chcg_iot_app/pages/home_tabs/CycleControlTab.dart';
 class AutoControlPage extends StatefulWidget {
   final Object obs; 
   final String deviceUUID;

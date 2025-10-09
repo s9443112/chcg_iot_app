@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:agritalk_iot_app/core/api_service.dart';
-import 'package:agritalk_iot_app/pages/login_page.dart';
+import 'package:chcg_iot_app/core/api_service.dart';
+import 'package:chcg_iot_app/pages/login_page.dart';
 import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';

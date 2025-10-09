@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:agritalk_iot_app/core/api_service.dart';
+import 'package:chcg_iot_app/core/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ConditionControlTab extends StatefulWidget {

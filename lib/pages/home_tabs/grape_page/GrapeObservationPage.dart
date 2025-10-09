@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:agritalk_iot_app/core/api_service.dart';
+import 'package:chcg_iot_app/core/api_service.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,7 +16,7 @@ class _GrapeObservationPageState extends State<GrapeObservationPage> {
 
   /// ✅ 多個地點（UUID＋顯示名稱）
   final List<Map<String, String>> groups = const [
-    {'uuid': 'f42a1553-591f-4ad7-8167-ae1ed4e6b6cd', 'label': '彰化縣溪湖鄉葡萄'},
+    {'uuid': 'f42a1553-591f-4ad7-8167-ae1ed4e6b6cd', 'label': '彰化縣溪湖鎮葡萄'},
     {'uuid': '7e98412d-117e-4fff-86a3-d0bd506173fe', 'label': '彰化縣大村鄉葡萄'},
   ];
 
@@ -33,7 +33,7 @@ class _GrapeObservationPageState extends State<GrapeObservationPage> {
     'Potential of Hydrogen': '酸鹼度',
     'Temperature': '環境溫度',
     'Humidity': '環境相對濕度',
-    'Illuminance': '光照度',
+    'Luminance': '光照度',
     'Photosynthetically Active Radiation': '光合作用有效輻射',
     'Solar Radiation': '太陽輻射度',
     'Carbon Dioxide': '二氧化碳',
@@ -44,7 +44,7 @@ class _GrapeObservationPageState extends State<GrapeObservationPage> {
   final List<String> features = const [
     'Temperature',
     'Humidity',
-    'Illuminance',
+    'Luminance',
     'Photosynthetically Active Radiation',
     'Solar Radiation',
     'Carbon Dioxide',

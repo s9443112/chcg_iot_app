@@ -1,6 +1,6 @@
 {
-    "name": "agritalk_iot_app",
-    "short_name": "agritalk_iot_app",
+    "name": "chcg_iot_app",
+    "short_name": "chcg_iot_app",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

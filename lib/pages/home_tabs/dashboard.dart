@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:agritalk_iot_app/core/observation_icons.dart';
-import 'package:agritalk_iot_app/core/hlscamera.dart';
-import 'package:agritalk_iot_app/pages/home_tabs/observationhistory.dart';
-import 'package:agritalk_iot_app/pages/home_tabs/autocontrol.dart';
-import 'package:agritalk_iot_app/core/api_service.dart';
+import 'package:chcg_iot_app/core/observation_icons.dart';
+import 'package:chcg_iot_app/core/hlscamera.dart';
+import 'package:chcg_iot_app/pages/home_tabs/observationhistory.dart';
+import 'package:chcg_iot_app/pages/home_tabs/autocontrol.dart';
+import 'package:chcg_iot_app/core/api_service.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 // 放在檔案最上面其它 import 旁邊
 import 'dart:ui' show ImageFilter;

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:agritalk_iot_app/core/api_service.dart';
-import 'package:agritalk_iot_app/pages/home_tabs/dashboard.dart';
+import 'package:chcg_iot_app/core/api_service.dart';
+import 'package:chcg_iot_app/pages/home_tabs/dashboard.dart';
 
 class WarRoomTab extends StatefulWidget {
   const WarRoomTab({super.key});

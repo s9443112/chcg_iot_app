@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:agritalk_iot_app/pages/home_tabs/guava_page/guava_page.dart';
-import 'package:agritalk_iot_app/pages/home_tabs/grape_page/grape_page.dart';
-import 'package:agritalk_iot_app/pages/home_tabs/disease_ai/main.dart';
-import 'package:agritalk_iot_app/pages/home_tabs/NewsDetailPage.dart';
-import 'package:agritalk_iot_app/core/api_service.dart';
+import 'package:chcg_iot_app/pages/home_tabs/guava_page/guava_page.dart';
+import 'package:chcg_iot_app/pages/home_tabs/grape_page/grape_page.dart';
+import 'package:chcg_iot_app/pages/home_tabs/disease_ai/main.dart';
+import 'package:chcg_iot_app/pages/home_tabs/NewsDetailPage.dart';
+import 'package:chcg_iot_app/core/api_service.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
