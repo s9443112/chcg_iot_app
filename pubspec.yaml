@@ -90,6 +90,7 @@ dev_dependencies:
 flutter:
   assets:
     - assets/logo-01.png
+    - assets/logo_icon.png
     - .env
     - assets/homepage/agriculture.jpg
     - assets/homepage/agritalk.png
