@@ -26,13 +26,95 @@ class _ProfileTabState extends State<ProfileTab> {
   Map<String, dynamic>? account;
   bool isLoading = true;
   String? error;
-  String appVersion = ''; // ← 新增
+  String appVersion = ''; 
+  bool _isDeactivating = false; // ← 新增：註銷中載入狀態
 
   @override
   void initState() {
     super.initState();
     fetchAccount();
     fetchAppVersion(); // ← 初始化時讀取版本
+  }
+
+  Future<void> _confirmDeactivateAccount() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token == null || token.isEmpty || token == 'GUEST_MODE') {
+      if (mounted) {
+        await _showLoginRequiredDialog();
+      }
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: !_isDeactivating,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setStateDialog) {
+            return AlertDialog(
+              title: const Text('註銷帳戶'),
+              content: const Text(
+                '註銷後將立即停用此帳號的登入與使用權限，'
+                '並在 30 天後永久刪除所有與該帳戶相關的資料（依後端政策執行）。\n\n'
+                '此操作無法復原，你確定要繼續嗎？',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: _isDeactivating ? null : () => Navigator.pop(ctx, false),
+                  child: const Text('取消'),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.red,
+                  ),
+                  onPressed: _isDeactivating
+                      ? null
+                      : () async {
+                          setStateDialog(() => _isDeactivating = true);
+                          try {
+                            final res = await apiService.deactivateAccount(token);
+                            if (mounted) Navigator.pop(ctx, true);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(res['message'] ?? '已提交註銷申請')),
+                              );
+                            }
+                            // 自動登出
+                            await prefs.remove('token');
+                            if (mounted) {
+                              Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
+                            }
+                          } catch (e) {
+                            setStateDialog(() => _isDeactivating = false);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    e.toString().replaceFirst('Exception: ', ''),
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  child: _isDeactivating
+                      ? const SizedBox(
+                          height: 18, width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('確認註銷'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    // 使用者取消或關閉視窗
+    if (confirmed != true) return;
   }
 
   Future<void> showAppInfoDialog() async {
@@ -412,6 +494,17 @@ class _ProfileTabState extends State<ProfileTab> {
                               ),
                             ),
                             const SizedBox(height: 12),
+                            // ↓↓↓ 新增：註銷帳戶按鈕（紅色）
+                            ElevatedButton.icon(
+                              onPressed: _confirmDeactivateAccount,
+                              icon: const Icon(Icons.delete_forever, color: Colors.white),
+                              label: const Text('註銷帳戶（30天後永久刪除）', style: TextStyle(color: Colors.white)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
                             OutlinedButton.icon(
                               onPressed: logout,
                               icon: const Icon(Icons.logout),

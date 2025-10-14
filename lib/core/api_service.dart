@@ -89,6 +89,31 @@ class ApiService {
     return {'error': '註冊失敗：${res.statusCode}', 'status': res.statusCode};
   }
 
+  Future<Map<String, dynamic>> deactivateAccount(String token) async {
+    // TODO: 換成你的實際 API 路徑與方法
+    // 範例1：POST /account/deactivate
+    final url = Uri.parse('$baseUrl/odata/api/v1-Odata/account/deactivate');
+    final res = await http.post(
+      url,
+      headers: {
+        'Authorization': '$token', // 或 'Bearer $token'
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({}), // 若需要帶參數可放進來
+    );
+
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return jsonDecode(res.body.isNotEmpty ? utf8.decode(res.bodyBytes) : '{}');
+    } else {
+      final msg = res.body.isNotEmpty ? res.body : 'Deactivate failed';
+      throw Exception(msg);
+    }
+
+    // 若你的後端是 DELETE /account，也可以改成：
+    // final url = Uri.parse('$baseUrl/account');
+    // final res = await http.delete(url, headers: {...});
+  }
+
   Future<Map<String, dynamic>?> account(String token) async {
     final url = Uri.parse('$baseUrl/odata/api/v1-Odata/account');
     final response = await http.get(
@@ -976,4 +1001,6 @@ class ApiService {
 
     return success;
   }
+
+
 }
