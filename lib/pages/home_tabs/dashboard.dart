@@ -880,6 +880,7 @@ class _DashboardPageState extends State<DashboardPage> {
               deviceUUID: obs['deviceUUID'],
               featureEnglishName: obs['featureEnglishName'],
               serialId: obs['serialId'],
+              alias: obs['alias']
             ),
       ),
     );

@@ -7,12 +7,14 @@ class ObservationHistoryPage extends StatefulWidget {
   final String deviceUUID;
   final String featureEnglishName;
   final String serialId;
+  final String alias;
 
   const ObservationHistoryPage({
     super.key,
     required this.deviceUUID,
     required this.featureEnglishName,
     required this.serialId,
+    required this.alias,
   });
 
   @override
@@ -192,10 +194,11 @@ class _ObservationHistoryPageState extends State<ObservationHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final alias = widget.alias;
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          '歷史資料',
+        title: Text(
+          '$alias · 歷史資料',
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
         ),
         centerTitle: true,

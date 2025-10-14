@@ -25,20 +25,20 @@ class _GuavaObservationPageState extends State<GuavaObservationPage> {
   bool loading = false;
 
   final Map<String, String> featureNameMap = {
-    'Precipitation': '降雨量',
-    'Atmospheric Pressure': '大氣壓力',
-    'Soil Temperature': '土壤溫度',
-    'Soil Moisture': '土壤水分張力感測器',
-    'Soil Electrical Conductivity': '土壤電導度',
+    'Precipitation': '時降雨量(mm/h)',
+    'Atmospheric Pressure': '大氣壓力(hPa)',
+    'Soil Temperature': '土壤溫度(°C)',
+    'Soil Moisture': '土壤濕度(%)',
+    'Soil Electrical Conductivity': '土壤電導度(mS/cm)',
     'Potential of Hydrogen': '酸鹼度',
-    'Temperature': '環境溫度',
-    'Humidity': '環境相對濕度',
-    'Luminance': '光照度',
-    'Photosynthetically Active Radiation': '光合作用有效輻射',
-    'Solar Radiation': '太陽輻射度',
-    'Carbon Dioxide': '二氧化碳',
-    'Wind Direction': '風向',
-    'Wind Speed': '風速',
+    'Temperature': '環境溫度(°C)',
+    'Humidity': '環境相對濕度(%)',
+    'Luminance': '照度(lux)',
+    'Photosynthetically Active Radiation': '紅外線強度(lux)',
+    'Solar Radiation': '紫外線(UVI)',
+    'Carbon Dioxide': '二氧化碳(ppm)',
+    'Wind Direction': '風向(°)',
+    'Wind Speed': '風速(m/s)',
   };
 
   final List<String> features = const [

@@ -276,7 +276,8 @@ class ApiService {
       '?featureEnglishName=$featureEnglishName'
       '&start_time=${DateFormat('yyyy-MM-dd HH:mm:ss').format(startTime)}'
       '&end_time=${DateFormat('yyyy-MM-dd HH:mm:ss').format(endTime)}'
-      '&aggregate=$aggregate',
+      '&aggregate=$aggregate'
+      '&mine=mine',
     );
 
     final response = await http.get(
