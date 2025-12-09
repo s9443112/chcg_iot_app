@@ -153,106 +153,125 @@ class _BugListPageState extends State<BugListPage> {
     }
 
     return RefreshIndicator(
-      onRefresh: _loadBugList,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _items.length + 1, // 多一個 header
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            // 頂部資訊區塊
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12.0),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: _primaryColor.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      '共找到 ${_items.length} 筆病蟲資料',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: _primaryColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      '點擊某一筆可查看該病蟲的用藥建議。',
-                      style: TextStyle(fontSize: 12, color: Colors.black54),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          final item = _items[index - 1] as Map<String, dynamic>? ?? {};
-          final String cropName = (item['crop_name'] ?? '').toString();
-          final String bugName = (item['bug_name'] ?? '').toString();
-
-          return Card(
-            elevation: 2,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.symmetric(vertical: 6),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => _openBugUsageDetail(item),
-              child: Padding(
+  onRefresh: _loadBugList,
+  child: ListView.builder(
+    padding: const EdgeInsets.all(16),
+    // 原本是 _items.length + 1，改成多一個 footer，所以 +2
+    itemCount: _items.length + 2,
+    itemBuilder: (context, index) {
+      // 0：頂部資訊區塊
+      if (index == 0) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: Row(
+            children: [
+              Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: _primaryColor.withOpacity(0.08),
-                      child: const Icon(
-                        Icons.bug_report,
-                        color: _primaryColor,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            bugName,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '作物：$cropName',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(
-                      Icons.chevron_right,
-                      color: Colors.black38,
-                    ),
-                  ],
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _primaryColor.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '共找到 ${_items.length} 筆病蟲資料',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: _primaryColor,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  '點擊某一筆可查看該病蟲的用藥建議。',
+                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      // 最後一筆：資料來源備註 footer
+      if (index == _items.length + 1) {
+        return const Padding(
+          padding: EdgeInsets.only(top: 16.0, bottom: 8.0),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              '資料來源：農業部動植物防疫檢疫署',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.black54,
+              ),
             ),
-          );
-        },
-      ),
-    );
-  }
+          ),
+        );
+      }
+
+      // 其他：病蟲卡片
+      final item = _items[index - 1] as Map<String, dynamic>? ?? {};
+      final String cropName = (item['crop_name'] ?? '').toString();
+      final String bugName = (item['bug_name'] ?? '').toString();
+
+      return Card(
+        elevation: 2,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _openBugUsageDetail(item),
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: _primaryColor.withOpacity(0.08),
+                  child: const Icon(
+                    Icons.bug_report,
+                    color: _primaryColor,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        bugName,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '作物：$cropName',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.chevron_right,
+                  color: Colors.black38,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  ),
+);
+}
 }

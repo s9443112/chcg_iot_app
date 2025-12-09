@@ -3,6 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chcg_iot_app/core/api_service.dart';
 import 'package:chcg_iot_app/pages/home_tabs/dashboard.dart';
+import 'dart:ui';
 
 class WarRoomTab extends StatefulWidget {
   const WarRoomTab({super.key});
@@ -29,6 +30,8 @@ class _WarRoomTabState extends State<WarRoomTab> {
   bool _isListMode = false; // ← 新增：是否為列表模式
   String _search = ''; // ← 新增：列表模式搜尋字
   final _searchCtrl = TextEditingController();
+
+  Map<String, dynamic>? _selectedTargetMeta;
 
   @override
   void initState() {
@@ -236,133 +239,167 @@ class _WarRoomTabState extends State<WarRoomTab> {
     });
   }
 
-  Widget _buildListBody() {
-    // 依搜尋字過濾 systems / targets
-    final systems =
-        _allSystems.where((s) {
-          final name = (s['name'] ?? '').toString().toLowerCase();
-          return name.contains(_search.toLowerCase());
-        }).toList();
+ Widget _buildListBody() {
+  // 依搜尋字過濾 systems / targets
+  final systems = _allSystems.where((s) {
+    final name = (s['name'] ?? '').toString().toLowerCase();
+    return name.contains(_search.toLowerCase());
+  }).toList();
 
-    // 建立 systemUUID -> targets 映射
-    Map<String, List<dynamic>> targetsBySystem = {};
-    for (final t in _allTargets) {
-      final sys = t['systemUUID'];
-      targetsBySystem.putIfAbsent(sys, () => []).add(t);
-    }
+  // 建立 systemUUID -> targets 映射
+  final Map<String, List<dynamic>> targetsBySystem = {};
+  for (final t in _allTargets) {
+    final sys = t['systemUUID'];
+    targetsBySystem.putIfAbsent(sys, () => []).add(t);
+  }
 
-    return SafeArea(
-      child: Column(
-        children: [
-          // 搜尋框
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: TextField(
-              controller: _searchCtrl,
-              onChanged: (v) => setState(() => _search = v),
-              decoration: InputDecoration(
-                hintText: '搜尋系統名稱…',
-                prefixIcon: const Icon(Icons.search),
-                isDense: true,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+  return SafeArea(
+    child: Column(
+      children: [
+        // 🔍 搜尋框
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: TextField(
+            controller: _searchCtrl,
+            onChanged: (v) => setState(() => _search = v),
+            decoration: InputDecoration(
+              hintText: '搜尋系統名稱…',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _search.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchCtrl.clear();
+                        setState(() => _search = '');
+                      },
+                    ),
+              isDense: true,
+              filled: true,
+              fillColor: Colors.grey.shade100,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide.none,
               ),
             ),
           ),
-          Expanded(
-            child:
-                systems.isEmpty
-                    ? const Center(child: Text('查無系統'))
-                    : ListView.builder(
-                      itemCount: systems.length,
-                      itemBuilder: (ctx, i) {
-                        final s = systems[i];
-                        final sysName = s['name'] ?? '未命名系統';
-                        final sysUUID = s['systemUUID'];
-                        final list =
-                            (targetsBySystem[sysUUID] ?? []).cast<Map>();
+        ),
 
-                        // 目標清單項目
-                        final tiles =
-                            list.map((t) {
-                              final area = t['area'] ?? '無區域名稱';
-                              return ListTile(
-                                leading: const Icon(Icons.place),
-                                title: Text(area),
-                                subtitle: Text(
-                                  'Lat: ${t['lat_WGS84']}, Lng: ${t['lon_WGS84']}',
-                                ),
-                                trailing: TextButton(
-  child: const Text('即時看板'),
-  onPressed: () => _onTargetMarkerTapped(t['targetUUID'], area),
-),
-                                onTap:
-                                    () => _onTargetMarkerTapped(
-                                      t['targetUUID'],
-                                      area,
-                                    ),
-                              );
-                            }).toList();
+        // 📄 清單
+        Expanded(
+          child: systems.isEmpty
+              ? const Center(child: Text('查無系統'))
+              : ListView.builder(
+                  itemCount: systems.length,
+                  itemBuilder: (ctx, i) {
+                    final s = systems[i];
+                    final sysName = s['name'] ?? '未命名系統';
+                    final sysUUID = s['systemUUID'];
+                    final city = s['city'] ?? '';
+                    final town = s['town'] ?? '';
+                    final list = (targetsBySystem[sysUUID] ?? []).cast<Map>();
 
-                        return Card(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
+                    // 目標 ListTile
+                    final tiles = list.map((t) {
+                      final area = t['area'] ?? '無區域名稱';
+                      return ListTile(
+                        dense: true,
+                        leading: const Icon(
+                          Icons.place,
+                          color: Color(0xFF7B4DBB),
+                        ),
+                        title: Text(
+                          area,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                        ),
+                        subtitle: Text(
+                          'Lat: ${t['lat_WGS84']}, Lng: ${t['lon_WGS84']}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
                           ),
-                          child: ExpansionTile(
-                            tilePadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
+                        ),
+                        trailing: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF7B4DBB),
+                            side: const BorderSide(color: Color(0xFF7B4DBB)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            textStyle: const TextStyle(fontSize: 12),
+                          ),
+                          child: const Text('即時看板'),
+                          onPressed: () =>
+                              _onTargetMarkerTapped(t['targetUUID'], area),
+                        ),
+                        onTap: () =>
+                            _onTargetMarkerTapped(t['targetUUID'], area),
+                      );
+                    }).toList();
+
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 2,
+                      child: Column(
+                        children: [
+                          // 上面加一條紫色色條
+                          Container(
+                            height: 4,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF7B4DBB),
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(16),
+                              ),
                             ),
+                          ),
+                          ExpansionTile(
+                            tilePadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 4),
+                            childrenPadding:
+                                const EdgeInsets.only(bottom: 8, right: 8),
                             leading: const Icon(
                               Icons.hub,
-                              color: const Color(0xFF7B4DBB),
+                              color: Color(0xFF7B4DBB),
                             ),
                             title: Text(
                               sysName,
                               style: const TextStyle(
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                            subtitle: Text('目標數：${list.length}'),
-                            children:
-                                tiles.isNotEmpty
-                                    ? tiles
-                                    : [
-                                      const Padding(
-                                        padding: EdgeInsets.all(12),
-                                        child: Text('此系統尚無目標'),
-                                      ),
-                                    ],
-                            onExpansionChanged: (expanded) async {
-                              if (expanded) {
-                                // 展開時順便把地圖鏡頭移到系統位置（若你想要）
-                                final lat = s['lat_WGS84'];
-                                final lng = s['lon_WGS84'];
-                                if (lat != null &&
-                                    lng != null &&
-                                    !_isListMode) {
-                                  await mapController.animateCamera(
-                                    CameraUpdate.newLatLngZoom(
-                                      LatLng(lat, lng),
-                                      12,
+                            subtitle: Text(
+                              '${city}${town.isNotEmpty ? " $town" : ""} · 目標數：${list.length}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                            children: tiles.isNotEmpty
+                                ? tiles
+                                : const [
+                                    Padding(
+                                      padding: EdgeInsets.all(12),
+                                      child: Text('此系統尚無目標'),
                                     ),
-                                  );
-                                }
-                              }
-                            },
+                                  ],
                           ),
-                        );
-                      },
-                    ),
-          ),
-        ],
-      ),
-    );
-  }
+                        ],
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -405,6 +442,67 @@ class _WarRoomTabState extends State<WarRoomTab> {
                       myLocationEnabled: true,
                       myLocationButtonEnabled: true,
                     ),
+
+                    // ⭐ 懸浮資訊欄（選到目標才會顯示）
+      if (_selectedTargetMeta != null)
+        Positioned(
+          top: 16,
+          left: 16,
+          right: 16,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(12),
+            color: Colors.white.withOpacity(0.95),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  const Icon(Icons.place, color: Color(0xFF7B4DBB)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _selectedTargetMeta!['area'] ?? '無區域名稱',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '座標：${_selectedTargetMeta!['lat_WGS84']}, '
+                          '${_selectedTargetMeta!['lon_WGS84']}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: () {
+                      final t = _selectedTargetMeta!;
+                      _onTargetMarkerTapped(
+                        t['targetUUID'],
+                        t['area'] ?? '無區域名稱',
+                      );
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF7B4DBB),
+                    ),
+                    child: const Text('即時看板'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
 
                     Positioned(
                       bottom: 16,
@@ -465,128 +563,184 @@ class _WarRoomTabState extends State<WarRoomTab> {
                     ),
 
                     if (_showSelectorPanel)
-                      Positioned(
-                        bottom: 70, // 剛好在「切換一般圖」上方
-                        left: 16,
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          width: 250,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(blurRadius: 6, color: Colors.black26),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text(
-                                "檢視地理位置",
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 8),
-                              DropdownButton<String>(
-                                isExpanded: true,
-                                hint: const Text('選擇系統'),
-                                value: _selectedSystemUUID,
-                                items:
-                                    _allSystems.map<DropdownMenuItem<String>>((
-                                      item,
-                                    ) {
-                                      return DropdownMenuItem<String>(
-                                        value: item['systemUUID'],
-                                        child: Text(item['name']),
-                                      );
-                                    }).toList(),
-                                onChanged: (value) {
-                                  if (value != null) {
-                                    _onSystemMarkerTapped(value);
-                                    setState(() {
-                                      _selectedSystemUUID = value;
-                                      _selectedTargetUUID = null;
-                                    });
-                                  }
-                                },
-                              ),
-                              const SizedBox(height: 8),
-                              DropdownButton<String>(
-                                isExpanded: true,
-                                hint: const Text('選擇目標'),
-                                value: _selectedTargetUUID,
-                                items:
-                                    _allTargets
-                                        .where(
-                                          (item) =>
-                                              item['systemUUID'] ==
-                                              _selectedSystemUUID,
-                                        )
-                                        .map<DropdownMenuItem<String>>((item) {
-                                          return DropdownMenuItem<String>(
-                                            value: item['targetUUID'],
-                                            child: Text(
-                                              item['area'] ?? '無區域名稱',
-                                            ),
-                                          );
-                                        })
-                                        .toList(),
-                                onChanged: (value) {
-                                  if (value != null) {
-                                    final target = _allTargets.firstWhere(
-                                      (item) =>
-                                          item['systemUUID'] ==
-                                              _selectedSystemUUID &&
-                                          item['targetUUID'] == value,
-                                      orElse: () => null,
-                                    );
+  Positioned(
+    bottom: 72,
+    left: 16,
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          width: 260,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.88),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.25),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+            border: Border.all(
+              color: Colors.white.withOpacity(0.6),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: const [
+                  Icon(Icons.location_searching,
+                      size: 18, color: Color(0xFF7B4DBB)),
+                  SizedBox(width: 6),
+                  Text(
+                    '檢視地理位置',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: '選擇系統',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                value: _selectedSystemUUID,
+                items: _allSystems
+                    .map<DropdownMenuItem<String>>((item) {
+                  return DropdownMenuItem<String>(
+                    value: item['systemUUID'],
+                    child: Text(item['name'] ?? '未命名系統'),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    _onSystemMarkerTapped(value);
+                    setState(() {
+                      _selectedSystemUUID = value;
+                      _selectedTargetUUID = null;
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: '選擇目標',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                value: _selectedTargetUUID,
+                items: _allTargets
+                    .where((item) =>
+                        item['systemUUID'] == _selectedSystemUUID)
+                    .map<DropdownMenuItem<String>>((item) {
+                  return DropdownMenuItem<String>(
+                    value: item['targetUUID'],
+                    child: Text(item['area'] ?? '無區域名稱'),
+                  );
+                }).toList(),
+                onChanged: (value) async {
+  if (value == null) return;
 
-                                    if (target != null) {
-                                      mapController.animateCamera(
-                                        CameraUpdate.newLatLngZoom(
-                                          LatLng(
-                                            target['lat_WGS84'],
-                                            target['lon_WGS84'],
-                                          ),
-                                          18,
-                                        ),
-                                      );
-                                    }
-                                    setState(() {
-                                      _selectedTargetUUID = value;
-                                    });
-                                  }
-                                },
-                              ),
-                              const SizedBox(height: 8),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  backgroundColor: const Color(0xFF7B4DBB),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(24),
-                                  ),
-                                ),
-                                onPressed: () {
-                                  final matched = _allTargets.firstWhere(
-                                    (t) =>
-                                        t['targetUUID'] == _selectedTargetUUID,
-                                    orElse: () => null,
-                                  );
+  // 找到選中的 target
+  final target = _allTargets.firstWhere(
+    (item) =>
+        item['systemUUID'] == _selectedSystemUUID &&
+        item['targetUUID'] == value,
+    orElse: () => null,
+  );
 
-                                  if (matched != null) {
-                                    _onTargetMarkerTapped(
-                                      matched["targetUUID"],
-                                      matched["area"],
-                                    );
-                                  }
-                                },
-                                child: const Text("即時看板"),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
+  if (target != null) {
+    // 1️⃣ 地圖鏡頭移過去
+    await mapController.animateCamera(
+      CameraUpdate.newLatLngZoom(
+        LatLng(
+          target['lat_WGS84'],
+          target['lon_WGS84'],
+        ),
+        18,
+      ),
+    );
+
+    // 2️⃣ 重新建立 marker，讓選中的那顆高亮（黃色）
+    final relatedTargets = _allTargets
+        .where((item) => item['systemUUID'] == _selectedSystemUUID)
+        .toList();
+
+    final Set<Marker> newTargetMarkers = relatedTargets.map<Marker>((item) {
+      final area = item['area'] ?? '未命名區域';
+      final isSelected = item['targetUUID'] == value;
+
+      return Marker(
+        markerId: MarkerId('target-${item['targetID']}'),
+        position: LatLng(item['lat_WGS84'], item['lon_WGS84']),
+        infoWindow: InfoWindow(
+          title: area,
+          snippet: '(詳細資訊)',
+          onTap: () => _onTargetMarkerTapped(item['targetUUID'], area),
+        ),
+        icon: BitmapDescriptor.defaultMarkerWithHue(
+          isSelected
+              ? BitmapDescriptor.hueYellow    // ⭐ 高亮色
+              : BitmapDescriptor.hueAzure,    // 原本顏色
+        ),
+      );
+    }).toSet();
+
+    // 3️⃣ 更新 state：目前選中哪個目標 & marker 高亮
+    setState(() {
+      _selectedTargetUUID = value;
+      _selectedTargetMeta = target;   // ⭐ 給懸浮欄用
+      _targetMarkers = newTargetMarkers;
+    });
+  }
+},
+),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 38,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: const Color(0xFF7B4DBB),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  onPressed: () {
+                    final matched = _allTargets.firstWhere(
+                      (t) => t['targetUUID'] == _selectedTargetUUID,
+                      orElse: () => null,
+                    );
+                    if (matched != null) {
+                      _onTargetMarkerTapped(
+                        matched['targetUUID'],
+                        matched['area'],
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.monitor_heart),
+                  label: const Text('即時看板'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  )
+],
                 ),
               ),
     );

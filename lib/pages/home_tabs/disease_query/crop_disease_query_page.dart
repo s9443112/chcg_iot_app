@@ -97,13 +97,28 @@ class _CropDiseaseQueryPageState extends State<CropDiseaseQueryPage> {
         elevation: 0,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildCropSearchSection(),
-          const SizedBox(height: 16),
-          _buildFarmListSection(),
-        ],
+  padding: const EdgeInsets.all(16),
+  children: [
+    _buildCropSearchSection(),
+    const SizedBox(height: 16),
+    _buildFarmListSection(),
+    const SizedBox(height: 24),
+
+    // ⭐ 新增：資料來源備註
+    Align(
+      alignment: Alignment.centerRight,
+      child: Text(
+        '資料來源：農業部動植物防疫檢疫署',
+        style: TextStyle(
+          fontSize: 11,
+          color: Colors.black54,
+        ),
       ),
+    ),
+    const SizedBox(height: 8),
+  ],
+),
+
     );
   }
 

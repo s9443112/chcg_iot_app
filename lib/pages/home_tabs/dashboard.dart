@@ -186,7 +186,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 3.w,
                   mainAxisSpacing: 3.w,
-                  mainAxisExtent: 28.h,
+                  mainAxisExtent: 23.h,
                 ),
                 itemBuilder:
                     (context, index) => _buildObservationCard(enrichedOthers[index]),
@@ -282,7 +282,7 @@ class _DashboardPageState extends State<DashboardPage> {
     final alias = (obs['alias'] ?? '').toString();
     final featureName =
         alias.isNotEmpty ? alias : (obs['deviceFeatureName'] ?? '').toString();
-    final value = (obs['value'] ?? '').toString() +" "+(obs['unit'] ?? '').toString();
+    final value = (obs['value'] ?? '').toString() ;
     final serialId = (obs['serialId'] ?? '').toString();
     final time = (obs['time'] ?? '').toString();
     final isCamera =
@@ -290,6 +290,8 @@ class _DashboardPageState extends State<DashboardPage> {
     final isActuator =
         (obs['style'] ?? '').toString().toLowerCase() == 'actuator';
     final iconData = ObservationIcons.getIcon(obs['deviceFeatureName']);
+
+    
     bool isSwitchOn = (value.toLowerCase() == 'true');
     bool _isSwitchLoading = false;
 
@@ -367,61 +369,59 @@ class _DashboardPageState extends State<DashboardPage> {
                   child: Center(
                     child:
                         isActuator
-                            ? Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  isSwitchOn ? 'ON' : 'OFF',
-                                  style: TextStyle(
-                                    fontSize: 18.sp,
-                                    color:
-                                        isSwitchOn ? Colors.green : Colors.red,
-                                  ),
-                                ),
-                                SizedBox(height: 0.8.h),
-                                Switch(
-                                  value: isSwitchOn,
-                                  onChanged:
-                                      _isSwitchLoading
-                                          ? null
-                                          : (bool newValue) async {
-                                            setInnerState(
-                                              () => _isSwitchLoading = true,
-                                            );
-                                            final success = await apiService
-                                                .switchSetting(
-                                                  deviceUUID: obs['deviceUUID'],
-                                                  featureEnglishName:
-                                                      obs['featureEnglishName'],
-                                                  serialId: serialId,
-                                                  newValue: newValue,
-                                                );
-                                            if (success && context.mounted) {
-                                              setInnerState(() {
-                                                obs['value'] =
-                                                    newValue.toString();
-                                                isSwitchOn = newValue;
-                                              });
-                                            }
-                                            if (context.mounted) {
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    success ? '開關成功' : '送出失敗',
-                                                  ),
-                                                ),
-                                              );
-                                            }
-                                            setInnerState(
-                                              () => _isSwitchLoading = false,
-                                            );
-                                          },
-                                ),
-                              ],
-                            )
-                            : Align(
+    ? Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            isSwitchOn ? 'ON' : 'OFF',
+            style: TextStyle(
+              fontSize: 16.sp,                       // 稍微縮小一點
+              color: isSwitchOn ? Colors.green : Colors.red,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(width: 2.w),
+          Theme(
+            data: Theme.of(context).copyWith(
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
+            child: Transform.scale(
+              scale: 0.85,                            // 把 Switch 稍微縮小
+              child: Switch.adaptive(
+                value: isSwitchOn,
+                onChanged: _isSwitchLoading
+                    ? null
+                    : (bool newValue) async {
+                        setInnerState(() => _isSwitchLoading = true);
+                        final success = await apiService.switchSetting(
+                          deviceUUID: obs['deviceUUID'],
+                          featureEnglishName: obs['featureEnglishName'],
+                          serialId: serialId,
+                          newValue: newValue,
+                        );
+                        if (success && context.mounted) {
+                          setInnerState(() {
+                            obs['value'] = newValue.toString();
+                            isSwitchOn = newValue;
+                          });
+                        }
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(success ? '開關成功' : '送出失敗'),
+                            ),
+                          );
+                        }
+                        setInnerState(() => _isSwitchLoading = false);
+                      },
+              ),
+            ),
+          ),
+        ],
+      )
+    : Align(
                               alignment: Alignment.bottomCenter,
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
@@ -442,7 +442,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                   FittedBox(
                                     fit: BoxFit.scaleDown,
                                     child: Text(
-                                      value,
+                                      value +" "+(obs['unit'] ?? '').toString(),
                                       style: TextStyle(
                                         fontSize: 18.sp,
                                         fontWeight: FontWeight.bold,
@@ -584,7 +584,7 @@ class _DashboardPageState extends State<DashboardPage> {
         alias.isNotEmpty ? alias : (obs['deviceFeatureName'] ?? '').toString();
     final serialId = (obs['serialId'] ?? '').toString();
     final time = (obs['time'] ?? '').toString();
-    final valueRaw = (obs['value'] ?? '').toString() + " "+ obs['unit'];
+    final valueRaw = (obs['value'] ?? '').toString();
     final isActuator =
         (obs['style'] ?? '').toString().toLowerCase() == 'actuator';
     final iconData = ObservationIcons.getIcon(obs['deviceFeatureName']);
@@ -658,7 +658,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         if (!isActuator) ...[
                           SizedBox(height: 0.3.h),
                           Text(
-                            valueRaw,
+                            valueRaw  + " "+ obs['unit'],
                             style: TextStyle(
                               fontSize: 16.sp,
                               fontWeight: FontWeight.bold,
@@ -924,7 +924,8 @@ class _DashboardPageState extends State<DashboardPage> {
               deviceUUID: obs['deviceUUID'],
               featureEnglishName: obs['featureEnglishName'],
               serialId: obs['serialId'],
-              alias: obs['alias']
+              alias: obs['alias'],
+              deviceFeatureName: obs['deviceFeatureName']
             ),
       ),
     );

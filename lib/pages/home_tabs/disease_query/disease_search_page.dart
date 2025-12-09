@@ -390,37 +390,56 @@ class _DiseaseSearchPageState extends State<DiseaseSearchPage> {
           _buildResultHeader(),
           const SizedBox(height: 4),
           Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _results.isEmpty
-                    ? const SizedBox.shrink()
-                    : ListView.builder(
-                        itemCount: _results.length,
-                        itemBuilder: (context, index) {
-                          final item = _results[index];
-                          final bugId = item['id']?.toString() ?? '';
-                          final cName =
-                              item['CName']?.toString() ?? '病害詳細';
-
-                          return InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () {
-                              if (bugId.isEmpty) return;
-
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => AzaiBugDetailPage(
-                                    bugId: bugId,
-                                    title: cName,
-                                  ),
-                                ),
-                              );
-                            },
-                            child: _buildDiseaseCard(item),
-                          );
-                        },
+  child: _loading
+      ? const Center(child: CircularProgressIndicator())
+      : _results.isEmpty
+          ? const SizedBox.shrink()
+          : ListView.builder(
+              padding: const EdgeInsets.only(bottom: 24),
+              itemCount: _results.length + 1, // 多一個 footer
+              itemBuilder: (context, index) {
+                // --- Footer：資料來源 ---
+                if (index == _results.length) {
+                  return const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        '資料來源：農業病蟲害智能管理決策系統',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.black54,
+                        ),
                       ),
-          ),
+                    ),
+                  );
+                }
+
+                // --- 正常卡片項目 ---
+                final item = _results[index];
+                final bugId = item['id']?.toString() ?? '';
+                final cName = item['CName']?.toString() ?? '病害詳細';
+
+                return InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () {
+                    if (bugId.isEmpty) return;
+
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => AzaiBugDetailPage(
+                          bugId: bugId,
+                          title: cName,
+                        ),
+                      ),
+                    );
+                  },
+                  child: _buildDiseaseCard(item),
+                );
+              },
+            ),
+)
+
         ],
       ),
     );

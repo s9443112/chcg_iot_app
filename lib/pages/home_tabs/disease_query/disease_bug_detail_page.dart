@@ -116,20 +116,38 @@ class _AzaiBugDetailPageState extends State<AzaiBugDetailPage> {
               : <String, dynamic>{};
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // 1. 圖片卡片
-                _buildPicsCard(pics),
+  padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      // 1. 圖片卡片
+      _buildPicsCard(pics),
 
-                const SizedBox(height: 12),
+      const SizedBox(height: 12),
 
-                // 2. 文字詳細卡片
-                _buildDetailCard(detail),
-              ],
+      // 2. 文字詳細卡片
+      _buildDetailCard(detail),
+
+      const SizedBox(height: 8),
+
+      // 3. 資料來源 footer
+      const Align(
+        alignment: Alignment.centerRight,
+        child: Padding(
+          padding: EdgeInsets.only(top: 4),
+          child: Text(
+            '資料來源：農業病蟲害智能管理決策系統',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.black54,
             ),
-          );
+          ),
+        ),
+      ),
+    ],
+  ),
+);
+
         },
       ),
     );

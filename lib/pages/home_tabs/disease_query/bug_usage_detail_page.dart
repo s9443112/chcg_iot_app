@@ -151,17 +151,35 @@ class _BugUsageDetailPageState extends State<BugUsageDetailPage> {
     final items = (_data?['items'] ?? []) as List<dynamic>;
 
     return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        children: [
-          _buildSummaryCard(title: title, total: total),
-          const SizedBox(height: 12),
-          Expanded(
-            child: _buildBeautifulTable(columns: columns, items: items),
-          ),
-        ],
+  padding: const EdgeInsets.all(12),
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _buildSummaryCard(title: title, total: total),
+      const SizedBox(height: 12),
+
+      // 表格區塊（可捲動）
+      Expanded(
+        child: _buildBeautifulTable(columns: columns, items: items),
       ),
-    );
+
+      const SizedBox(height: 8),
+
+      // 資料來源備註
+      Align(
+        alignment: Alignment.centerRight,
+        child: Text(
+          '資料來源：農業部動植物防疫檢疫署',
+          style: const TextStyle(
+            fontSize: 11,
+            color: Colors.black54,
+          ),
+        ),
+      ),
+    ],
+  ),
+);
+
   }
 
   /// 上方摘要卡片（顯示作物＋病蟲名稱，不再顯示 farm / bug code）
