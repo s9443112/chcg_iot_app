@@ -77,7 +77,10 @@ class _DashboardPageState extends State<DashboardPage> {
                         final device = widget.devices[index];
                         final deviceObservations =
                             device["observationlatest"].toList();
-                        return _buildDeviceCard(device, deviceObservations);
+                        final deviceFeature =
+                            device["deviceFeature"].toList();
+                        // print(device);
+                        return _buildDeviceCard(device, deviceObservations,deviceFeature);
                       }, childCount: widget.devices.length),
                     ),
           ),
@@ -86,7 +89,9 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildDeviceCard(dynamic device, List<dynamic> deviceObservations) {
+  Widget _buildDeviceCard(dynamic device, List<dynamic> deviceObservations, List<dynamic> deviceFeature) {
+
+
     final cameras =
         deviceObservations
             .where(
@@ -120,6 +125,24 @@ class _DashboardPageState extends State<DashboardPage> {
 
             return aSerial.compareTo(bSerial);
           });
+    final featureUnitMap = {
+      for (var f in deviceFeature)
+        (f['featureEnglishName'] ?? '').toString().toLowerCase():
+            (f['unit'] ?? '').toString(),
+    };
+
+        // 在 others 加上 unit 欄位
+    final enrichedOthers = others.map((item) {
+      final key = (item['featureEnglishName'] ?? '').toString().toLowerCase();
+      final unit = featureUnitMap[key] ?? ''; // 若找不到，就給空字串
+
+      return {
+        ...item,       // 原本的資料
+        'unit': unit,  // 新增欄位
+      };
+    }).toList();
+
+    // print(enrichedOthers);
 
     return Card(
       margin: EdgeInsets.symmetric(vertical: 1.h),
@@ -153,12 +176,12 @@ class _DashboardPageState extends State<DashboardPage> {
             // 先畫攝影機
             ...cameras.map((obs) => _buildCameraCard(obs)).toList(),
             // 再畫一般感測器（用Grid）
-            if (others.isNotEmpty)
+            if (enrichedOthers.isNotEmpty)
               GridView.builder(
                 padding: EdgeInsets.only(top: 0.75.h),
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: others.length,
+                itemCount: enrichedOthers.length,
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 3.w,
@@ -166,7 +189,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   mainAxisExtent: 28.h,
                 ),
                 itemBuilder:
-                    (context, index) => _buildObservationCard(others[index]),
+                    (context, index) => _buildObservationCard(enrichedOthers[index]),
               ),
           ],
         ),
@@ -259,7 +282,7 @@ class _DashboardPageState extends State<DashboardPage> {
     final alias = (obs['alias'] ?? '').toString();
     final featureName =
         alias.isNotEmpty ? alias : (obs['deviceFeatureName'] ?? '').toString();
-    final value = (obs['value'] ?? '').toString();
+    final value = (obs['value'] ?? '').toString() +" "+(obs['unit'] ?? '').toString();
     final serialId = (obs['serialId'] ?? '').toString();
     final time = (obs['time'] ?? '').toString();
     final isCamera =
@@ -474,15 +497,18 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildNonCameraListByDeviceSliver() {
+
+    
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, deviceIndex) {
         final device = widget.devices[deviceIndex];
-        return _buildDeviceSectionForListMode(device);
+        final deviceFeature = device["deviceFeature"].toList();
+        return _buildDeviceSectionForListMode(device, deviceFeature);
       }, childCount: widget.devices.length),
     );
   }
 
-  Widget _buildDeviceSectionForListMode(dynamic device) {
+  Widget _buildDeviceSectionForListMode(dynamic device, List<dynamic> deviceFeature) {
     final deviceName = (device['name'] ?? '未命名裝置').toString();
 
     // 該裝置的非攝影機觀測值
@@ -507,6 +533,24 @@ class _DashboardPageState extends State<DashboardPage> {
           });
 
     if (items.isEmpty) return const SizedBox.shrink();
+    // print(items);
+
+    final featureUnitMap = {
+      for (var f in deviceFeature)
+        (f['featureEnglishName'] ?? '').toString().toLowerCase():
+            (f['unit'] ?? '').toString(),
+    };
+
+        // 在 others 加上 unit 欄位
+    final enrichedOthers = items.map((item) {
+      final key = (item['featureEnglishName'] ?? '').toString().toLowerCase();
+      final unit = featureUnitMap[key] ?? ''; // 若找不到，就給空字串
+
+      return {
+        ...item,       // 原本的資料
+        'unit': unit,  // 新增欄位
+      };
+    }).toList();
 
     return Padding(
       padding: EdgeInsets.only(bottom: 2.h),
@@ -526,7 +570,7 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
           // 該裝置的條列卡片
-          ...items
+          ...enrichedOthers
               .map((obs) => _buildNonCameraListItemOnlyFeature(obs))
               .toList(),
         ],
@@ -540,7 +584,7 @@ class _DashboardPageState extends State<DashboardPage> {
         alias.isNotEmpty ? alias : (obs['deviceFeatureName'] ?? '').toString();
     final serialId = (obs['serialId'] ?? '').toString();
     final time = (obs['time'] ?? '').toString();
-    final valueRaw = (obs['value'] ?? '').toString();
+    final valueRaw = (obs['value'] ?? '').toString() + " "+ obs['unit'];
     final isActuator =
         (obs['style'] ?? '').toString().toLowerCase() == 'actuator';
     final iconData = ObservationIcons.getIcon(obs['deviceFeatureName']);

@@ -5,6 +5,9 @@ import 'package:chcg_iot_app/pages/home_tabs/grape_page/grape_page.dart';
 import 'package:chcg_iot_app/pages/home_tabs/disease_ai/main.dart';
 import 'package:chcg_iot_app/pages/home_tabs/NewsDetailPage.dart';
 import 'package:chcg_iot_app/core/api_service.dart';
+import 'package:chcg_iot_app/pages/home_tabs/disease_query/crop_disease_query_page.dart';
+import 'package:chcg_iot_app/pages/home_tabs/disease_query/disease_search_page.dart';
+
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -115,6 +118,18 @@ class _HomeTabState extends State<HomeTab> {
         'image': 'assets/homepage/grape.jpg',
         'url': null,
       },
+      {
+        'title': '用藥查詢',
+        'subtitle': '用藥查詢',
+        'image': 'assets/homepage/grape.jpg', // 你可以換成自己有的圖片
+        'url': null,
+      },
+      {
+        'title': '病害查詢',
+        'subtitle': '病害查詢',
+        'image': 'assets/homepage/grape.jpg', // 你可以換成自己有的圖片
+        'url': null,
+      },
       // {
       //   'title': '白粉病檢測',
       //   'subtitle': '進入白粉病檢測平台',
@@ -177,6 +192,20 @@ class _HomeTabState extends State<HomeTab> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const DiseaseAIMainPage()),
+                  );
+                }else if (e['title'] == '用藥查詢') {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CropDiseaseQueryPage(),
+                    ),
+                  );
+                }else if (e['title'] == '病害查詢') {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const DiseaseSearchPage(),
+                    ),
                   );
                 }
               }

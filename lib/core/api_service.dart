@@ -156,6 +156,22 @@ class ApiService {
       throw Exception(errorMessage);
     }
   }
+  
+  Future<List<dynamic>?> fetchdeviceFeatureName(String token) async {
+    final url = Uri.parse('$baseUrl/odata/api/v1-Odata/deviceFeatureName');
+    final response = await http.get(
+      url,
+      headers: {'accept': 'application/json', 'Authorization': token},
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      return data['value'];
+    } else {
+      print('取得 Systems 失敗: ${response.statusCode}');
+      return null;
+    }
+  }
 
   Future<List<dynamic>?> fetchSystems(String token) async {
     final url = Uri.parse('$baseUrl/odata/api/v1-Odata/Systems');
@@ -1004,4 +1020,219 @@ class ApiService {
   }
 
 
+}
+
+
+class DiseaseApiService {
+  /// .env 裡請加一個，例如：
+  /// DISEASE_API_URL=http://192.168.0.10:5000
+  final String? diseaseURL = dotenv.env['DISEASE_API_URL'];
+
+  DiseaseApiService() {
+    if (diseaseURL == null || diseaseURL!.isEmpty) {
+      throw Exception(
+        'DISEASE_API_URL 尚未設定，請在 .env 中設定，例如 DISEASE_API_URL=http://127.0.0.1:5000',
+      );
+    }
+  }
+
+  Uri _buildUri(String path, [Map<String, String>? params]) {
+    return Uri.parse('$diseaseURL$path').replace(
+      queryParameters: params,
+    );
+  }
+
+  // ====================== 既有 API ======================
+
+  /// 封裝 /api/farms
+  /// 對應 Flask：
+  /// GET /api/farms?farm=火龍果
+  Future<Map<String, dynamic>?> fetchFarms({String farm = '火龍果'}) async {
+    final uri = _buildUri('/api/farms', {'farm': farm});
+
+    final res = await http.get(
+      uri,
+      headers: const {'accept': 'application/json'},
+    );
+
+    if (res.statusCode == 200) {
+      return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    } else {
+      print('fetchFarms 失敗: ${res.statusCode} ${res.body}');
+      return null;
+    }
+  }
+
+  /// 封裝 /api/bug-farm-list
+  /// 對應 Flask：
+  /// GET /api/bug-farm-list?farm=E215901,D135901&flag=&bug=&userange=
+  Future<Map<String, dynamic>?> fetchBugFarmList({
+    required String farm, // 例如 "E215901,D135901"
+    String flag = '',
+    String bug = '',
+    String userange = '',
+  }) async {
+    final uri = _buildUri('/api/bug-farm-list', {
+      'farm': farm,
+      'flag': flag,
+      'bug': bug,
+      'userange': userange,
+    });
+
+    final res = await http.get(
+      uri,
+      headers: const {'accept': 'application/json'},
+    );
+
+    if (res.statusCode == 200) {
+      return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    } else {
+      print('fetchBugFarmList 失敗: ${res.statusCode} ${res.body}');
+      return null;
+    }
+  }
+
+  /// 封裝 /api/bug-farm-userange
+  /// 對應 Flask：
+  /// GET /api/bug-farm-userange?farm=D135901&bug=A0301&flag=
+  Future<Map<String, dynamic>?> fetchBugFarmUserange({
+    required String farm, // 例如 "D135901"
+    required String bug, // 例如 "A0301"
+    String flag = '',
+  }) async {
+    final uri = _buildUri('/api/bug-farm-userange', {
+      'farm': farm,
+      'bug': bug,
+      'flag': flag,
+    });
+
+    final res = await http.get(
+      uri,
+      headers: const {'accept': 'application/json'},
+    );
+
+    if (res.statusCode == 200) {
+      return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    } else {
+      print('fetchBugFarmUserange 失敗: ${res.statusCode} ${res.body}');
+      return null;
+    }
+  }
+
+  // ====================== azai 病蟲害查詢 API ======================
+
+  /// 封裝 /api/azai/search
+  /// 對應 Flask：
+  /// POST /api/azai/search
+  /// body: { "term": "火龍果", "ty": "y,y,y,y" }
+  ///
+  /// 回傳格式：
+  /// { "data": [ { "id": ..., "CName": ..., "pic": "完整圖片 URL", ... }, ... ] }
+  Future<Map<String, dynamic>?> searchAzaiBugs({
+  required String term,
+  String ty = 'y,y,y,y',
+}) async {
+  final uri = _buildUri('/api/azai/search');
+
+  print('[DiseaseApiService] POST $uri');
+  print('[DiseaseApiService] body=${{'term': term, 'ty': ty}}');
+
+  try {
+    final res = await http.post(
+      uri,
+      headers: const {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        // ⭐ 要求伺服器不要用 gzip / br 壓縮
+        'accept-encoding': 'identity',
+      },
+      body: jsonEncode({
+        'term': term,
+        'ty': ty,
+      }),
+    );
+
+    print('[DiseaseApiService] status=${res.statusCode}');
+
+    if (res.statusCode == 200) {
+      final text = utf8.decode(res.bodyBytes);
+      print('[DiseaseApiService] body length=${text.length}');
+      return jsonDecode(text) as Map<String, dynamic>;
+    } else {
+      print('searchAzaiBugs 失敗: ${res.statusCode} ${res.body}');
+      return null;
+    }
+  } on http.ClientException catch (e, s) {
+    print('[DiseaseApiService] ClientException: $e');
+    print('$s');
+    rethrow;
+  } catch (e, s) {
+    print('[DiseaseApiService] 其他例外: $e');
+    print('$s');
+    rethrow;
+  }
+}
+
+
+  /// 封裝 /api/azai/bug-pics
+  /// 對應 Flask：
+  /// POST /api/azai/bug-pics
+  /// body: { "bug_id": 333 }
+  ///
+  /// 回傳格式：
+  /// { "data": [ { "image_url": "完整圖片 URL", ... }, ... ] }
+  Future<Map<String, dynamic>?> fetchAzaiBugPics({
+    required String bugId,
+  }) async {
+    final uri = _buildUri('/api/azai/bug-pics');
+
+    final res = await http.post(
+      uri,
+      headers: const {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+      },
+      body: jsonEncode({
+        'bug_id': bugId,
+      }),
+    );
+
+    if (res.statusCode == 200) {
+      return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    } else {
+      print('fetchAzaiBugPics 失敗: ${res.statusCode} ${res.body}');
+      return null;
+    }
+  }
+
+  /// 封裝 /api/azai/bug-detail
+  /// 對應 Flask：
+  /// POST /api/azai/bug-detail
+  /// body: { "bug_id": 333 }
+  ///
+  /// 回傳格式：
+  /// { "data": [ { "CName": ..., "SName": ..., "Harm": ..., ... } ] }
+  Future<Map<String, dynamic>?> fetchAzaiBugDetail({
+    required String bugId,
+  }) async {
+    final uri = _buildUri('/api/azai/bug-detail');
+
+    final res = await http.post(
+      uri,
+      headers: const {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+      },
+      body: jsonEncode({
+        'bug_id': bugId,
+      }),
+    );
+
+    if (res.statusCode == 200) {
+      return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    } else {
+      print('fetchAzaiBugDetail 失敗: ${res.statusCode} ${res.body}');
+      return null;
+    }
+  }
 }

@@ -179,7 +179,7 @@ class _WarRoomTabState extends State<WarRoomTab> {
 
     try {
       final devices = await apiService.fetchDevices(token, targetUUID);
-
+      // print(devices);
       devices?.sort((a, b) {
         // 轉小寫避免大小寫影響
         final aName = (a['name'] ?? '').toString().toLowerCase();

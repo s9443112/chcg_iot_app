@@ -183,9 +183,29 @@ class _GuavaDiseasePageState extends State<GuavaDiseasePage> {
     required List<ChartData> histB,
     required String labelA,
     required String labelB,
+
+     
   }) {
+     String scoreNameA;
+     String scoreNameB;
+
     final double scoreA = (currentA?['score'] ?? 0).toDouble();
     final double scoreB = (currentB?['score'] ?? 0).toDouble();
+    scoreNameA = "低";
+    if (scoreA > 60){
+      scoreNameA = "高";
+    }
+    if (scoreA > 30){
+      scoreNameA = "中";
+    }
+
+    scoreNameB = "低";
+    if (scoreB > 60){
+      scoreNameB = "高";
+    }
+    if (scoreB > 30){
+      scoreNameB = "中";
+    }
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
@@ -220,7 +240,7 @@ class _GuavaDiseasePageState extends State<GuavaDiseasePage> {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  '$labelA：${scoreA.toStringAsFixed(2)}%',
+                  '$labelA：${scoreNameA}',
                   style: TextStyle(
                     fontSize: 14,
                     color: getRiskColor(scoreA),
@@ -233,7 +253,7 @@ class _GuavaDiseasePageState extends State<GuavaDiseasePage> {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  '$labelB：${scoreB.toStringAsFixed(2)}%',
+                  '$labelB：${scoreNameB}',
                   style: TextStyle(
                     fontSize: 14,
                     color: getRiskColor(scoreB),
