@@ -1241,38 +1241,31 @@ class DiseaseApiService {
 
 
 class DiseaseAzaiApiService {
-  // 這個是你給病害 Flask API 的 base URL
-  // 可以放在 .env: DISEASE_API_BASE_URL
   final String _baseUrl =
       dotenv.env['DISEASE_API_BASE_URL'] ?? 'http://140.113.79.235:10000';
 
-  late final Dio _dio;
+  // ✅ 直接初始化，不需要 late、不需要建構子
+  late final Dio _dio = Dio(
+    BaseOptions(
+      baseUrl: _baseUrl,
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 20),
+      headers: const {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+      },
+    ),
+  )
+    ..interceptors.add(LogInterceptor(
+      requestBody: true,
+      responseBody: true,
+      requestHeader: true,
+      responseHeader: false,
+    ));
 
-  DiseaseApiService() {
-    _dio = Dio(
-      BaseOptions(
-        baseUrl: _baseUrl,
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 20),
-        headers: const {
-          'accept': 'application/json',
-          'content-type': 'application/json',
-        },
-      ),
-    );
-
-    // 可選：開 log，方便抓問題
-    _dio.interceptors.add(
-      LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        requestHeader: true,
-        responseHeader: false,
-      ),
-    );
-  }
-
-  /// 搜尋病害（Proxy: /api/azai/search）
+  // -------------------------------
+  // 搜尋 API
+  // -------------------------------
   Future<Map<String, dynamic>?> searchAzaiBugs({
     required String term,
     String ty = 'y,y,y,y',
@@ -1286,85 +1279,48 @@ class DiseaseAzaiApiService {
         },
       );
 
-      // dio 預設已經幫你 json decode 過了
-      if (res.statusCode == 200 && res.data is Map<String, dynamic>) {
+      if (res.data is Map<String, dynamic>) {
         return res.data as Map<String, dynamic>;
-      } else {
-        print(
-          '[DiseaseApiService] searchAzaiBugs 異常狀態碼: '
-          '${res.statusCode} data=${res.data}',
-        );
-        return null;
       }
-    } on DioException catch (e) {
-      print('[DiseaseApiService] searchAzaiBugs DioException: $e');
-      print('  type=${e.type}, response=${e.response?.data}');
-      // 這裡你要回傳 null 還是往外丟，看你需求
-      rethrow;
+      return null;
     } catch (e) {
-      print('[DiseaseApiService] searchAzaiBugs 其他例外: $e');
+      print('[DiseaseApiService] searchAzaiBugs error=$e');
       rethrow;
     }
   }
 
-  /// 取得病害圖片列表（Proxy: /api/azai/bug-pics）
+  // -------------------------------
+  // 圖片 API
+  // -------------------------------
   Future<Map<String, dynamic>?> fetchAzaiBugPics({
     required String bugId,
   }) async {
     try {
       final res = await _dio.post(
         '/api/azai/bug-pics',
-        data: {
-          'bug_id': bugId,
-        },
+        data: {'bug_id': bugId},
       );
-
-      if (res.statusCode == 200 && res.data is Map<String, dynamic>) {
-        return res.data as Map<String, dynamic>;
-      } else {
-        print(
-          '[DiseaseApiService] fetchAzaiBugPics 異常狀態碼: '
-          '${res.statusCode} data=${res.data}',
-        );
-        return null;
-      }
-    } on DioException catch (e) {
-      print('[DiseaseApiService] fetchAzaiBugPics DioException: $e');
-      print('  type=${e.type}, response=${e.response?.data}');
-      rethrow;
+      return res.data as Map<String, dynamic>?;
     } catch (e) {
-      print('[DiseaseApiService] fetchAzaiBugPics 其他例外: $e');
+      print('[DiseaseApiService] fetchAzaiBugPics error=$e');
       rethrow;
     }
   }
 
-  /// 取得病害詳細（文字敘述）（Proxy: /api/azai/bug-detail）
+  // -------------------------------
+  // 詳細資料 API
+  // -------------------------------
   Future<Map<String, dynamic>?> fetchAzaiBugDetail({
     required String bugId,
   }) async {
     try {
       final res = await _dio.post(
         '/api/azai/bug-detail',
-        data: {
-          'bug_id': bugId,
-        },
+        data: {'bug_id': bugId},
       );
-
-      if (res.statusCode == 200 && res.data is Map<String, dynamic>) {
-        return res.data as Map<String, dynamic>;
-      } else {
-        print(
-          '[DiseaseApiService] fetchAzaiBugDetail 異常狀態碼: '
-          '${res.statusCode} data=${res.data}',
-        );
-        return null;
-      }
-    } on DioException catch (e) {
-      print('[DiseaseApiService] fetchAzaiBugDetail DioException: $e');
-      print('  type=${e.type}, response=${e.response?.data}');
-      rethrow;
+      return res.data as Map<String, dynamic>?;
     } catch (e) {
-      print('[DiseaseApiService] fetchAzaiBugDetail 其他例外: $e');
+      print('[DiseaseApiService] fetchAzaiBugDetail error=$e');
       rethrow;
     }
   }
