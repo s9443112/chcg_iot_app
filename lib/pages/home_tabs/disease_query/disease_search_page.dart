@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:chcg_iot_app/core/api_service.dart';
+import 'package:chcg_iot_app/pages/home_tabs/disease_query/disease_bug_detail_page.dart';
 
 class DiseaseSearchPage extends StatefulWidget {
   const DiseaseSearchPage({super.key});
@@ -9,7 +10,7 @@ class DiseaseSearchPage extends StatefulWidget {
 }
 
 class _DiseaseSearchPageState extends State<DiseaseSearchPage> {
-  final DiseaseApiService _api = DiseaseApiService();
+  final DiseaseAzaiApiService _api = DiseaseAzaiApiService();
   final TextEditingController _searchController =
       TextEditingController(text: '芭樂');
 
@@ -291,11 +292,26 @@ class _DiseaseSearchPageState extends State<DiseaseSearchPage> {
                     : ListView.builder(
                         itemCount: _results.length,
                         itemBuilder: (context, index) {
-                          final item = _results[index];
+  final item = _results[index];
+  final bugId = item['id']?.toString() ?? '';
+  final cName = item['CName']?.toString() ?? '病害詳細';
 
-                          // 之後要做詳細頁可以包一層 InkWell / GestureDetector
-                          return _buildDiseaseCard(item);
-                        },
+  return InkWell(
+    onTap: () {
+      if (bugId.isEmpty) return;
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => AzaiBugDetailPage(
+            bugId: bugId,
+            title: cName,
+          ),
+        ),
+      );
+    },
+    child: _buildDiseaseCard(item),
+  );
+},
                       ),
           ),
         ],
