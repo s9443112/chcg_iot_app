@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chcg_iot_app/core/api_service.dart';
-import 'package:chcg_iot_app/pages/login_page.dart';
 import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -26,14 +25,16 @@ class _ProfileTabState extends State<ProfileTab> {
   Map<String, dynamic>? account;
   bool isLoading = true;
   String? error;
-  String appVersion = ''; 
-  bool _isDeactivating = false; // ← 新增：註銷中載入狀態
+  String appVersion = '';
+  bool _isDeactivating = false;
+
+  static const Color _primaryColor = Color(0xFF7B4DBB);
 
   @override
   void initState() {
     super.initState();
     fetchAccount();
-    fetchAppVersion(); // ← 初始化時讀取版本
+    fetchAppVersion();
   }
 
   Future<void> _confirmDeactivateAccount() async {
@@ -54,37 +55,53 @@ class _ProfileTabState extends State<ProfileTab> {
         return StatefulBuilder(
           builder: (ctx, setStateDialog) {
             return AlertDialog(
-              title: const Text('註銷帳戶'),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                '註銷帳戶',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
               content: const Text(
                 '註銷後將立即停用此帳號的登入與使用權限，'
                 '並在 30 天後永久刪除所有與該帳戶相關的資料（依後端政策執行）。\n\n'
                 '此操作無法復原，你確定要繼續嗎？',
               ),
+              actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
               actions: [
                 TextButton(
-                  onPressed: _isDeactivating ? null : () => Navigator.pop(ctx, false),
+                  onPressed:
+                      _isDeactivating ? null : () => Navigator.pop(ctx, false),
                   child: const Text('取消'),
                 ),
                 FilledButton(
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.red,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
                   ),
                   onPressed: _isDeactivating
                       ? null
                       : () async {
                           setStateDialog(() => _isDeactivating = true);
                           try {
-                            final res = await apiService.deactivateAccount(token);
+                            final res =
+                                await apiService.deactivateAccount(token);
                             if (mounted) Navigator.pop(ctx, true);
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(res['message'] ?? '已提交註銷申請')),
+                                SnackBar(
+                                  content: Text(
+                                    res['message'] ?? '已提交註銷申請',
+                                  ),
+                                ),
                               );
                             }
-                            // 自動登出
                             await prefs.remove('token');
                             if (mounted) {
-                              Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
+                              Navigator.of(context)
+                                  .pushNamedAndRemoveUntil('/', (_) => false);
                             }
                           } catch (e) {
                             setStateDialog(() => _isDeactivating = false);
@@ -92,7 +109,9 @@ class _ProfileTabState extends State<ProfileTab> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    e.toString().replaceFirst('Exception: ', ''),
+                                    e
+                                        .toString()
+                                        .replaceFirst('Exception: ', ''),
                                   ),
                                 ),
                               );
@@ -101,8 +120,12 @@ class _ProfileTabState extends State<ProfileTab> {
                         },
                   child: _isDeactivating
                       ? const SizedBox(
-                          height: 18, width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Text('確認註銷'),
                 ),
@@ -113,7 +136,6 @@ class _ProfileTabState extends State<ProfileTab> {
       },
     );
 
-    // 使用者取消或關閉視窗
     if (confirmed != true) return;
   }
 
@@ -137,29 +159,31 @@ class _ProfileTabState extends State<ProfileTab> {
     if (!mounted) return;
     showDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('App 資訊'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _kv('App 名稱', p.appName),
-                _kv('套件 ID', p.packageName),
-                _kv('版本號', p.version),
-                _kv('Build', p.buildNumber),
-                const Divider(),
-                _kv('作業系統', os),
-                _kv('裝置', device),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('關閉'),
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text('App 資訊'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _kv('App 名稱', p.appName),
+            _kv('套件 ID', p.packageName),
+            _kv('版本號', p.version),
+            _kv('Build', p.buildNumber),
+            const Divider(),
+            _kv('作業系統', os),
+            _kv('裝置', device),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('關閉'),
           ),
+        ],
+      ),
     );
   }
 
@@ -185,33 +209,35 @@ class _ProfileTabState extends State<ProfileTab> {
   Future<void> fetchAppVersion() async {
     final info = await PackageInfo.fromPlatform();
     setState(() {
-      appVersion = info.version; // e.g. "1.0.0"
+      appVersion = info.version;
     });
   }
 
   Future<void> _showLoginRequiredDialog() async {
     await showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('請先登入'),
-            content: const Text('您需要登入才能查看個人基本資訊。'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text('取消'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pushReplacementNamed(context, '/');
-                },
-                child: const Text('前往登入'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text('請先登入'),
+        content: const Text('您需要登入才能查看個人基本資訊。'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('取消'),
           ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushReplacementNamed(context, '/');
+            },
+            child: const Text('前往登入'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -265,124 +291,136 @@ class _ProfileTabState extends State<ProfileTab> {
 
     showDialog(
       context: context,
-      builder:
-          (ctx) => StatefulBuilder(
-            builder: (context, setState) {
-              return AlertDialog(
-                title: const Text('變更密碼'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: oldController,
-                      obscureText: oldObscure,
-                      decoration: InputDecoration(
-                        labelText: '舊密碼',
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            oldObscure
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                          ),
-                          onPressed: () {
-                            setState(() => oldObscure = !oldObscure);
-                          },
-                        ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text('變更密碼'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: oldController,
+                  obscureText: oldObscure,
+                  decoration: InputDecoration(
+                    labelText: '舊密碼',
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        oldObscure
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                       ),
+                      onPressed: () {
+                        setState(() => oldObscure = !oldObscure);
+                      },
                     ),
-                    TextField(
-                      controller: newController,
-                      obscureText: newObscure,
-                      decoration: InputDecoration(
-                        labelText: '新密碼',
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            newObscure
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                          ),
-                          onPressed: () {
-                            setState(() => newObscure = !newObscure);
-                          },
-                        ),
-                      ),
-                    ),
-                    TextField(
-                      controller: confirmController,
-                      obscureText: confirmObscure,
-                      decoration: InputDecoration(
-                        labelText: '確認新密碼',
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            confirmObscure
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                          ),
-                          onPressed: () {
-                            setState(() => confirmObscure = !confirmObscure);
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('取消'),
+                TextField(
+                  controller: newController,
+                  obscureText: newObscure,
+                  decoration: InputDecoration(
+                    labelText: '新密碼',
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        newObscure
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() => newObscure = !newObscure);
+                      },
+                    ),
                   ),
-                  ElevatedButton(
-                    onPressed: () async {
-                      final oldPwd = oldController.text.trim();
-                      final newPwd = newController.text.trim();
-                      final confirmPwd = confirmController.text.trim();
-
-                      if (oldPwd.isEmpty ||
-                          newPwd.isEmpty ||
-                          confirmPwd.isEmpty) {
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(const SnackBar(content: Text('請填寫完整')));
-                        return;
-                      }
-
-                      if (newPwd != confirmPwd) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('新密碼與確認密碼不一致')),
-                        );
-                        return;
-                      }
-
-                      try {
-                        final res = await apiService.changePassword(
-                          oldPwd,
-                          newPwd,
-                        );
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(res["message"] ?? '密碼更新成功')),
-                        );
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              e.toString().replaceFirst('Exception: ', ''),
-                            ),
-                          ),
-                        );
-                      }
-                    },
-                    child: const Text('送出'),
+                ),
+                TextField(
+                  controller: confirmController,
+                  obscureText: confirmObscure,
+                  decoration: InputDecoration(
+                    labelText: '確認新密碼',
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        confirmObscure
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() => confirmObscure = !confirmObscure);
+                      },
+                    ),
                   ),
-                ],
-              );
-            },
-          ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('取消'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final oldPwd = oldController.text.trim();
+                  final newPwd = newController.text.trim();
+                  final confirmPwd = confirmController.text.trim();
+
+                  if (oldPwd.isEmpty ||
+                      newPwd.isEmpty ||
+                      confirmPwd.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('請填寫完整')),
+                    );
+                    return;
+                  }
+
+                  if (newPwd != confirmPwd) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('新密碼與確認密碼不一致')),
+                    );
+                    return;
+                  }
+
+                  try {
+                    final res = await apiService.changePassword(
+                      oldPwd,
+                      newPwd,
+                    );
+                    if (context.mounted) {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content:
+                              Text(res["message"] ?? '密碼更新成功'),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          e.toString().replaceFirst('Exception: ', ''),
+                        ),
+                      ),
+                    );
+                  }
+                },
+                child: const Text('送出'),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final fullName =
+        '${account?['first_name'] ?? ''} ${account?['last_name'] ?? ''}'
+            .trim();
+    final username = (account?['username'] ?? '').toString();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -390,137 +428,311 @@ class _ProfileTabState extends State<ProfileTab> {
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFF7B4DBB),
+        backgroundColor: _primaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      backgroundColor: Colors.white,
-      body:
-          isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : error != null
-              ? Center(child: Text(error!))
+      backgroundColor: const Color(0xFFF6F6F8),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : error != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Card(
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          error!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
               : SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Card(
-                      elevation: 3,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '帳號資訊',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // 頂部個人頭像 / 名稱卡片
+                      Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 30,
+                                backgroundColor:
+                                    _primaryColor.withOpacity(0.1),
+                                child: Text(
+                                  (fullName.isNotEmpty
+                                          ? fullName.characters.first
+                                          : (username.isNotEmpty
+                                              ? username.characters.first
+                                              : '?'))
+                                      .toUpperCase(),
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: _primaryColor,
+                                  ),
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            InfoRow(
-                              title: '帳號',
-                              value: account?['username'] ?? '',
-                            ),
-                            InfoRow(
-                              title: '姓名',
-                              value:
-                                  '${account?['first_name'] ?? ''} ${account?['last_name'] ?? ''}',
-                            ),
-                            InfoRow(
-                              title: '信箱',
-                              value: account?['email'] ?? '',
-                            ),
-                            InfoRow(
-                              title: '加入時間',
-                              value:
-                                  formatDateTime(account?['date_joined']) ?? '',
-                            ),
-                            InfoRow(
-                              title: '最近登入',
-                              value:
-                                  formatDateTime(account?['last_login']) ?? '',
-                            ),
-                            const SizedBox(height: 8),
-                            InfoRow(
-                              title: '版本號',
-                              value:
-                                  appVersion.isNotEmpty ? appVersion : '讀取中...',
-                              onTap:
-                                  appVersion.isNotEmpty
-                                      ? showAppInfoDialog
-                                      : null,
-                            ),
-                          ],
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      fullName.isNotEmpty
+                                          ? fullName
+                                          : (username.isNotEmpty
+                                              ? username
+                                              : '尚未設定姓名'),
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    if (username.isNotEmpty)
+                                      Text(
+                                        '帳號：$username',
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                                    const SizedBox(height: 8),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 4,
+                                      children: [
+                                        Chip(
+                                          label: const Text('已登入'),
+                                          labelStyle: const TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.white,
+                                          ),
+                                          backgroundColor: _primaryColor,
+                                          padding: EdgeInsets.zero,
+                                          materialTapTargetSize:
+                                              MaterialTapTargetSize
+                                                  .shrinkWrap,
+                                        ),
+                                        if (appVersion.isNotEmpty)
+                                          Chip(
+                                            label: Text('版本 v$appVersion'),
+                                            labelStyle: const TextStyle(
+                                              fontSize: 11,
+                                            ),
+                                            backgroundColor:
+                                                const Color(0xFFEDE7F6),
+                                            padding: EdgeInsets.zero,
+                                            materialTapTargetSize:
+                                                MaterialTapTargetSize
+                                                    .shrinkWrap,
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    Card(
-                      elevation: 3,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const Text(
-                              '帳戶操作',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton.icon(
-                              onPressed: changePasswordDialog,
-                              icon: const Icon(
-                                Icons.lock_reset,
-                                color: Colors.white,
-                              ),
-                              label: const Text(
-                                '變更密碼',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF7B4DBB),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            // ↓↓↓ 新增：註銷帳戶按鈕（紅色）
-                            ElevatedButton.icon(
-                              onPressed: _confirmDeactivateAccount,
-                              icon: const Icon(Icons.delete_forever, color: Colors.white),
-                              label: const Text('註銷帳戶（30天後永久刪除）', style: TextStyle(color: Colors.white)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
 
-                            OutlinedButton.icon(
-                              onPressed: logout,
-                              icon: const Icon(Icons.logout),
-                              label: const Text('登出'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.red,
-                                side: const BorderSide(color: Colors.red),
+                      const SizedBox(height: 20),
+
+                      // 帳號資訊區塊
+                      Card(
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: const [
+                                  Icon(Icons.person_outline,
+                                      size: 20, color: _primaryColor),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    '帳號資訊',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 12),
+                              InfoRow(
+                                title: '帳號',
+                                value: account?['username'] ?? '',
+                              ),
+                              InfoRow(
+                                title: '姓名',
+                                value:
+                                    '${account?['first_name'] ?? ''} ${account?['last_name'] ?? ''}',
+                              ),
+                              InfoRow(
+                                title: '信箱',
+                                value: account?['email'] ?? '',
+                              ),
+                              InfoRow(
+                                title: '加入時間',
+                                value: formatDateTime(
+                                  account?['date_joined'],
+                                ),
+                              ),
+                              InfoRow(
+                                title: '最近登入',
+                                value: formatDateTime(
+                                  account?['last_login'],
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              InfoRow(
+                                title: '版本號',
+                                value: appVersion.isNotEmpty
+                                    ? appVersion
+                                    : '讀取中...',
+                                onTap:
+                                    appVersion.isNotEmpty
+                                        ? showAppInfoDialog
+                                        : null,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+
+                      const SizedBox(height: 24),
+
+                      // 帳戶操作區塊
+                      Card(
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: const [
+                                  Icon(Icons.settings_outlined,
+                                      size: 20, color: _primaryColor),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    '帳戶操作',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                height: 44,
+                                child: ElevatedButton.icon(
+                                  onPressed: changePasswordDialog,
+                                  icon: const Icon(
+                                    Icons.lock_reset,
+                                    color: Colors.white,
+                                  ),
+                                  label: const Text(
+                                    '變更密碼',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _primaryColor,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(999),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                height: 44,
+                                child: ElevatedButton.icon(
+                                  onPressed: _confirmDeactivateAccount,
+                                  icon: const Icon(
+                                    Icons.delete_forever,
+                                    color: Colors.white,
+                                  ),
+                                  label: const Text(
+                                    '註銷帳戶（30天後永久刪除）',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(999),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                height: 44,
+                                child: OutlinedButton.icon(
+                                  onPressed: logout,
+                                  icon: const Icon(Icons.logout),
+                                  label: const Text(
+                                    '登出',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.red,
+                                    side: const BorderSide(
+                                      color: Colors.red,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(999),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
     );
   }
 }
@@ -528,7 +740,7 @@ class _ProfileTabState extends State<ProfileTab> {
 class InfoRow extends StatelessWidget {
   final String title;
   final String value;
-  final VoidCallback? onTap; // ← 新增
+  final VoidCallback? onTap;
 
   const InfoRow({
     super.key,
@@ -545,14 +757,21 @@ class InfoRow extends StatelessWidget {
           width: 80,
           child: Text(
             '$title：',
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
           ),
         ),
         Expanded(
           child: Text(
-            value,
+            value.isEmpty ? '-' : value,
             style: TextStyle(
-              color: onTap == null ? Colors.black87 : const Color(0xFF7B4DBB),
+              fontSize: 13,
+              color:
+                  onTap == null
+                      ? Colors.black87
+                      : const Color(0xFF7B4DBB),
               decoration:
                   onTap == null
                       ? TextDecoration.none
@@ -561,7 +780,11 @@ class InfoRow extends StatelessWidget {
           ),
         ),
         if (onTap != null)
-          const Icon(Icons.info_outline, size: 18, color: Color(0xFF7B4DBB)),
+          const Icon(
+            Icons.info_outline,
+            size: 18,
+            color: Color(0xFF7B4DBB),
+          ),
       ],
     );
 
