@@ -616,7 +616,7 @@ class ApiService {
       }
       return [];
     } else {
-      print('取得病蟲害預測失敗: ${response.statusCode}');
+      print('取得病蟲害歷史預測失敗: ${response.statusCode}');
       return null;
     }
   }
