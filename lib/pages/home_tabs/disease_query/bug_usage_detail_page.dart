@@ -26,6 +26,8 @@ class _BugUsageDetailPageState extends State<BugUsageDetailPage> {
   Map<String, dynamic>? _data;
   String? _error;
 
+  static const Color _primaryColor = Color(0xFF7B4DBB);
+
   @override
   void initState() {
     super.initState();
@@ -67,23 +69,24 @@ class _BugUsageDetailPageState extends State<BugUsageDetailPage> {
   }
 
   @override
-Widget build(BuildContext context) {
-  final titleText = "${widget.cropName} - ${widget.bugName}";
+  Widget build(BuildContext context) {
+    final titleText = "${widget.cropName} - ${widget.bugName}";
 
-  return Scaffold(
-    appBar: AppBar(
-      backgroundColor: const Color(0xFF7B4DBB),
-      foregroundColor: Colors.white,
-      title: Text(
-        titleText,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F6F8),
+      appBar: AppBar(
+        title: Text(
+          titleText,
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
+        ),
+        centerTitle: true,
+        backgroundColor: _primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
-    ),
-    body: _buildBody(),
-  );
-}
-
+      body: _buildBody(),
+    );
+  }
 
   Widget _buildBody() {
     if (_loading) {
@@ -94,17 +97,44 @@ Widget build(BuildContext context) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(_error!, textAlign: TextAlign.center),
-              const SizedBox(height: 8),
-              ElevatedButton.icon(
-                onPressed: _fetchDetail,
-                icon: const Icon(Icons.refresh),
-                label: const Text('重新整理'),
+          child: Card(
+            elevation: 2,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.error_outline,
+                      size: 40, color: Colors.red.shade400),
+                  const SizedBox(height: 8),
+                  Text(
+                    _error!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _primaryColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 10),
+                    ),
+                    onPressed: _fetchDetail,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text(
+                      '重新整理',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       );
@@ -134,6 +164,7 @@ Widget build(BuildContext context) {
     );
   }
 
+  /// 上方摘要卡片（顯示作物＋病蟲名稱，不再顯示 farm / bug code）
   Widget _buildSummaryCard({required String title, required dynamic total}) {
     return Card(
       elevation: 2,
@@ -145,7 +176,7 @@ Widget build(BuildContext context) {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFF7B4DBB),
+                color: _primaryColor,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(Icons.local_florist, color: Colors.white),
@@ -155,11 +186,30 @@ Widget build(BuildContext context) {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 主標題：如果 API 有 title 就用；否則用「作物 + 病蟲」
                   Text(
-                    title.isNotEmpty ? title : '${widget.cropName} ${widget.bugName}',
+                    title.isNotEmpty
+                        ? title
+                        : '${widget.cropName} - ${widget.bugName}',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // 額外資訊：作物名稱 / 病蟲名稱
+                  Text(
+                    '作物：${widget.cropName}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    '病蟲：${widget.bugName}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.black87,
                     ),
                   ),
                   if (total != null)
@@ -173,9 +223,13 @@ Widget build(BuildContext context) {
                         ),
                       ),
                     ),
-                  Text(
-                    'farm: ${widget.farmCode} ・ bug: ${widget.bugCode}',
-                    style: const TextStyle(fontSize: 12, color: Colors.black45),
+                  const SizedBox(height: 2),
+                  const Text(
+                    '以下為官方建議用藥與使用方式，實際仍請依標示與專業人員指導為準。',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.black45,
+                    ),
                   ),
                 ],
               ),
@@ -208,7 +262,8 @@ Widget build(BuildContext context) {
             scrollDirection: Axis.horizontal,
             child: DataTableTheme(
               data: DataTableThemeData(
-                headingRowColor: MaterialStateProperty.all(const Color(0xFF7B4DBB)),
+                headingRowColor:
+                    MaterialStateProperty.all(_primaryColor), // 紫色表頭
                 headingTextStyle: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -259,7 +314,7 @@ Widget build(BuildContext context) {
                         final key = c['key']?.toString() ?? '';
                         final value = (row[key] ?? '').toString();
 
-                        // 把比較重要的欄位稍微強調
+                        // 把比較重要的欄位稍微強調（依實際 key 再調整）
                         final isImportant = key == 'dose_per_hectare' ||
                             key == 'dilution_factor' ||
                             key == 'usage_timing' ||
@@ -267,15 +322,23 @@ Widget build(BuildContext context) {
 
                         return DataCell(
                           ConstrainedBox(
-                            constraints: const BoxConstraints(minWidth: 80, maxWidth: 160),
+                            constraints: const BoxConstraints(
+                              minWidth: 80,
+                              maxWidth: 160,
+                            ),
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 4.0),
                               child: Text(
                                 value.isEmpty ? '-' : value,
                                 softWrap: true,
                                 style: TextStyle(
-                                  fontWeight: isImportant ? FontWeight.w600 : FontWeight.normal,
-                                  color: isImportant ? const Color(0xFF4A148C) : Colors.black87,
+                                  fontWeight: isImportant
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
+                                  color: isImportant
+                                      ? const Color(0xFF4A148C)
+                                      : Colors.black87,
                                   fontSize: 13,
                                 ),
                               ),

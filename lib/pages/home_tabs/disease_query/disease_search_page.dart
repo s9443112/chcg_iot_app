@@ -17,6 +17,8 @@ class _DiseaseSearchPageState extends State<DiseaseSearchPage> {
   bool _loading = false;
   List<Map<String, dynamic>> _results = [];
 
+  static const Color _primaryColor = Color(0xFF7B4DBB);
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -27,75 +29,78 @@ class _DiseaseSearchPageState extends State<DiseaseSearchPage> {
     final term = _searchController.text.trim();
     if (term.isEmpty) return;
 
-    setState(() {
-      _loading = true;
-      _results = [];
-    });
+    setState(() => _loading = true);
 
-    try {
-      final res = await _api.searchAzaiBugs(term: term);
-      final data = res?['data'];
+    int maxRetry = 10;
+    int attempt = 0;
+    dynamic data;
 
-      if (data is List) {
-        setState(() {
-          _results = data.whereType<Map<String, dynamic>>().toList();
-        });
-      } else {
-        setState(() {
-          _results = [];
-        });
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('搜尋失敗：$e')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
+    while (attempt < maxRetry) {
+      attempt++;
+      try {
+        final res = await _api.searchAzaiBugs(term: term);
+        data = res?['data'];
+
+        // 成功就跳出 retry 迴圈
+        break;
+      } catch (e) {
+        if (attempt >= maxRetry) {
+          // 已經重試到第 10 次 → 還是失敗 → 顯示錯誤
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('搜尋失敗（已重試 $attempt 次）：$e')),
+            );
+          }
+          data = null;
+          break;
+        }
+
+        // 等待 300ms 再試下一次（避免狂轟 API）
+        await Future.delayed(const Duration(milliseconds: 300));
       }
     }
+
+    if (!mounted) return;
+
+    // 更新 UI
+    if (data is List) {
+      setState(() {
+        _results = data.whereType<Map<String, dynamic>>().toList();
+      });
+    } else {
+      setState(() => _results = []);
+    }
+
+    setState(() => _loading = false);
   }
 
-  /// 單一病害卡片樣式（類似你截圖那種：左圖右文）
+  /// 單一病害卡片樣式（左圖右文）
   Widget _buildDiseaseCard(Map<String, dynamic> item) {
     final cName = item['CName']?.toString() ?? '未命名病害';
     final sName = item['SName']?.toString() ?? '';
 
     // 類別標籤（粉類、真菌、細菌…）
-    final typeLabel = item['Type']?.toString() ??
-        item['Category']?.toString() ??
-        item['Pathogen']?.toString() ??
-        '';
-
-    // 危害作物 / 防治對象
-    final host = item['Host']?.toString() ??
-        item['HostCrop']?.toString() ??
-        item['Target']?.toString() ??
-        '－';
+    final typeLabel = item['Peculiarity']?.toString() ?? '';
 
     // 危害徵狀
-    final harm = item['Harm']?.toString() ??
-        item['Symptom']?.toString() ??
-        '－';
+    final host = item['Harm']?.toString() ?? '';
+
+    // 危害作物 / 防治對象
+    final harm = item['HarmDatail']?.toString() ?? '';
 
     // 圖片網址
-    final picUrl = item['pic']?.toString() ??
-        item['image_url']?.toString() ??
-        '';
+    final picUrl = item['pic']?.toString() ?? '';
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ✅ 左側圖片
+            // 左側圖片
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: picUrl.isNotEmpty
@@ -131,7 +136,7 @@ class _DiseaseSearchPageState extends State<DiseaseSearchPage> {
 
             const SizedBox(width: 12),
 
-            // ✅ 右側文字
+            // 右側文字
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,7 +194,7 @@ class _DiseaseSearchPageState extends State<DiseaseSearchPage> {
                     text: TextSpan(
                       children: [
                         const TextSpan(
-                          text: '危害作物/防治對象：',
+                          text: '危害作物 / 防治對象：',
                           style: TextStyle(
                             color: Color(0xFF2E7D32),
                             fontSize: 13,
@@ -205,11 +210,13 @@ class _DiseaseSearchPageState extends State<DiseaseSearchPage> {
                         ),
                       ],
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
 
                   const SizedBox(height: 4),
 
-                  // 危害徵狀（最多 2~3 行）
+                  // 危害徵狀
                   RichText(
                     text: TextSpan(
                       children: [
@@ -242,76 +249,176 @@ class _DiseaseSearchPageState extends State<DiseaseSearchPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('病害查詢'),
-      ),
-      body: Column(
-        children: [
-          // 🔍 搜尋區塊
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Row(
+  Widget _buildSearchSection() {
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.all(12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: const [
+                Icon(Icons.search, size: 20, color: _primaryColor),
+                SizedBox(width: 6),
+                Text(
+                  '病害關鍵字查詢',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _searchController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: '作物 / 關鍵字',
                       hintText: '例如：火龍果、葡萄、番石榴…',
-                      border: OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.local_florist),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       isDense: true,
+                      filled: true,
                     ),
                     onSubmitted: (_) => _doSearch(),
                   ),
                 ),
                 const SizedBox(width: 8),
-                ElevatedButton.icon(
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   onPressed: _loading ? null : _doSearch,
-                  icon: _loading
+                  child: _loading
                       ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
                         )
-                      : const Icon(Icons.search),
-                  label: const Text('搜尋'),
+                      : const Text(
+                          '搜尋',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
                 ),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResultHeader() {
+    if (_loading) {
+      return const SizedBox.shrink();
+    }
+
+    if (_results.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Text(
+          '尚未搜尋或查無資料。',
+          style: TextStyle(fontSize: 13, color: Colors.black54),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      child: Row(
+        children: [
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: _primaryColor.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              '共 ${_results.length} 筆結果',
+              style: const TextStyle(
+                fontSize: 12,
+                color: _primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-          const Divider(height: 1),
-          // 📋 結果列表
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              '點擊卡片可查看詳細資訊與圖片。',
+              style: TextStyle(fontSize: 12, color: Colors.black54),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F6F8),
+      appBar: AppBar(
+        title: const Text(
+          '病害查詢',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
+        ),
+        centerTitle: true,
+        backgroundColor: _primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: Column(
+        children: [
+          _buildSearchSection(),
+          _buildResultHeader(),
+          const SizedBox(height: 4),
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : _results.isEmpty
-                    ? const Center(child: Text('尚未搜尋或查無資料'))
+                    ? const SizedBox.shrink()
                     : ListView.builder(
                         itemCount: _results.length,
                         itemBuilder: (context, index) {
-  final item = _results[index];
-  final bugId = item['id']?.toString() ?? '';
-  final cName = item['CName']?.toString() ?? '病害詳細';
+                          final item = _results[index];
+                          final bugId = item['id']?.toString() ?? '';
+                          final cName =
+                              item['CName']?.toString() ?? '病害詳細';
 
-  return InkWell(
-    onTap: () {
-      if (bugId.isEmpty) return;
+                          return InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () {
+                              if (bugId.isEmpty) return;
 
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => AzaiBugDetailPage(
-            bugId: bugId,
-            title: cName,
-          ),
-        ),
-      );
-    },
-    child: _buildDiseaseCard(item),
-  );
-},
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => AzaiBugDetailPage(
+                                    bugId: bugId,
+                                    title: cName,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: _buildDiseaseCard(item),
+                          );
+                        },
                       ),
           ),
         ],

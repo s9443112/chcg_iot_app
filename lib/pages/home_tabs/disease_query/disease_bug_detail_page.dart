@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:chcg_iot_app/core/api_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-/// 單一病害詳細頁：同時使用
+/// 單一病害詳細頁：
 /// - fetchAzaiBugDetail (文字說明)
 /// - fetchAzaiBugPics (圖片列表)
 class AzaiBugDetailPage extends StatefulWidget {
@@ -20,6 +21,7 @@ class AzaiBugDetailPage extends StatefulWidget {
 
 class _AzaiBugDetailPageState extends State<AzaiBugDetailPage> {
   final DiseaseApiService _api = DiseaseApiService();
+  static const Color _primaryColor = Color(0xFF7B4DBB);
 
   late Future<_BugDetailData> _future;
 
@@ -30,8 +32,36 @@ class _AzaiBugDetailPageState extends State<AzaiBugDetailPage> {
   }
 
   Future<_BugDetailData> _load() async {
-    final detailRes = await _api.fetchAzaiBugDetail(bugId: widget.bugId);
-    final picsRes = await _api.fetchAzaiBugPics(bugId: widget.bugId);
+    const int maxRetry = 10;
+    int attempt = 0;
+
+    Map<String, dynamic>? detailRes;
+    Map<String, dynamic>? picsRes;
+
+    while (true) {
+      attempt++;
+      try {
+        // 兩個 API 可以同時打
+        final results = await Future.wait([
+          _api.fetchAzaiBugDetail(bugId: widget.bugId),
+          _api.fetchAzaiBugPics(bugId: widget.bugId),
+        ]);
+
+        detailRes = results[0] as Map<String, dynamic>?;
+        picsRes = results[1] as Map<String, dynamic>?;
+
+        // 成功就跳出迴圈
+        break;
+      } catch (e) {
+        if (attempt >= maxRetry) {
+          // 超過最大重試次數，丟錯給 FutureBuilder 顯示
+          throw Exception('載入失敗（已重試 $attempt 次）：$e');
+        }
+
+        // 等一下再試，避免連續狂打
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+    }
 
     final detailList = (detailRes?['data'] as List?) ?? const [];
     final picsList = (picsRes?['data'] as List?) ?? const [];
@@ -42,8 +72,16 @@ class _AzaiBugDetailPageState extends State<AzaiBugDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF6F6F8),
       appBar: AppBar(
-        title: Text(widget.title), // 直接用列表帶進來的中文名
+        title: Text(
+          widget.title,
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
+        ),
+        centerTitle: true,
+        backgroundColor: _primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: FutureBuilder<_BugDetailData>(
         future: _future,
@@ -53,7 +91,14 @@ class _AzaiBugDetailPageState extends State<AzaiBugDetailPage> {
           }
           if (snapshot.hasError) {
             return Center(
-              child: Text('載入失敗：${snapshot.error}'),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  '載入失敗：${snapshot.error}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
             );
           }
 
@@ -71,17 +116,17 @@ class _AzaiBugDetailPageState extends State<AzaiBugDetailPage> {
               : <String, dynamic>{};
 
           return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 1. 圖片輪播
-                _buildPicsCarousel(pics),
+                // 1. 圖片卡片
+                _buildPicsCard(pics),
 
-                // 2. 文字區塊
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: _buildDetailSection(detail),
-                ),
+                const SizedBox(height: 12),
+
+                // 2. 文字詳細卡片
+                _buildDetailCard(detail),
               ],
             ),
           );
@@ -90,11 +135,22 @@ class _AzaiBugDetailPageState extends State<AzaiBugDetailPage> {
     );
   }
 
+  /// 外層圖片卡片（包住輪播）
+  Widget _buildPicsCard(List<dynamic> pics) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: SizedBox(
+        height: 260,
+        child: _buildPicsCarousel(pics),
+      ),
+    );
+  }
+
   /// 圖片輪播 (利用 fetchAzaiBugPics 回來的 data)
   Widget _buildPicsCarousel(List<dynamic> pics) {
     if (pics.isEmpty) {
       return Container(
-        height: 200,
         margin: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.grey.shade100,
@@ -104,130 +160,213 @@ class _AzaiBugDetailPageState extends State<AzaiBugDetailPage> {
       );
     }
 
-    return SizedBox(
-      height: 260,
-      child: PageView.builder(
-        itemCount: pics.length,
-        itemBuilder: (context, index) {
-          final item = pics[index] as Map<String, dynamic>? ?? {};
-          // 後端回來的 key 你可以依實際調整，例如 'pic', 'image_url'...
-          final url = item['pic']?.toString() ??
-              item['image_url']?.toString() ??
-              '';
+    return PageView.builder(
+      itemCount: pics.length,
+      itemBuilder: (context, index) {
+        final item = pics[index] as Map<String, dynamic>? ?? {};
+        // 後端回來的 key 你可以依實際調整，例如 'pic', 'image_url'...
+        final url =
+            item['pic']?.toString() ?? item['image_url']?.toString() ?? '';
 
-          return Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: url.isEmpty
-                  ? Container(
-                      color: Colors.grey.shade300,
-                      child: const Center(
-                        child: Icon(
-                          Icons.image_not_supported,
-                          size: 48,
-                        ),
+        return Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: url.isEmpty
+                ? Container(
+                    color: Colors.grey.shade300,
+                    child: const Center(
+                      child: Icon(
+                        Icons.image_not_supported,
+                        size: 48,
                       ),
-                    )
-                  : Image.network(
-                      url,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: Colors.grey.shade300,
-                          child: const Center(
-                            child: Icon(
-                              Icons.image_not_supported,
-                              size: 48,
-                            ),
-                          ),
-                        );
-                      },
                     ),
-            ),
-          );
-        },
-      ),
+                  )
+                : Image.network(
+                    url,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey.shade300,
+                        child: const Center(
+                          child: Icon(
+                            Icons.image_not_supported,
+                            size: 48,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        );
+      },
     );
   }
 
-  /// 文字詳細資訊區塊（使用 fetchAzaiBugDetail 的第一筆資料）
-  Widget _buildDetailSection(Map<String, dynamic> detail) {
+  /// 文字詳細資訊卡片（使用 fetchAzaiBugDetail 的第一筆資料）
+  Widget _buildDetailCard(Map<String, dynamic> detail) {
     // 依你 .NET 資料實際欄位來排順序
     const fieldOrder = <String>[
-      'CName',     // 中文名稱
-      'SName',     // 學名
-      'Type',      // 類別：真菌 / 卵菌 / 線蟲...
-      'Host',      // 寄主 / 危害作物
-      'Harm',      // 危害作物 / 防治對象（簡短）
-      'HarmDetail',// 危害詳細描述
-      'HarmPart',  // 危害部位
-      'Peculiarity', // 特性
-      'Property',  // 病原 / 特徵說明
-      'Symptom',   // 症狀
-      'Biology',   // 生態 / 生活史
-      'Measure',   // 防治建議
+      'CName',
+      'SName',
+      'EClass5',
+      'EName',
+      'Harm',
+      'HarmPart',
+      'Property',
+      'Life',
+      'HarmDatail',
+      'Control',
+      'Med',
+      'editor',
+      'refer',
+      'url',
     ];
 
     const fieldLabel = <String, String>{
       'CName': '中文名稱',
       'SName': '學名',
-      'Type': '類別',
-      'Host': '寄主 / 危害作物',
-      'Harm': '危害作物 / 防治對象',
-      'HarmDetail': '危害情形',
-      'HarmPart': '危害部位',
-      'Peculiarity': '特性',
-      'Property': '病原特性',
-      'Symptom': '症狀特徵',
-      'Biology': '生活史 / 生態',
-      'Measure': '防治建議',
+      'EClass5': '病害學名',
+      'EName': '病害英名',
+      'Harm': '病原寄主',
+      'HarmPart': '病徵',
+      'Property': '病原特徵',
+      'Life': '發病生態',
+      'HarmDatail': '病害環境',
+      'Control': '防治方法',
+      'Med': '藥劑防治',
+      'editor': '作者',
+      'refer': '參考來源',
+      'url': '來源網址',
     };
 
     final widgets = <Widget>[];
 
-    // 上面有一排儲存 chip 的資訊（例如 Type）
+    // 先處理抬頭：中文名稱 / 學名
+    final cName = (detail['CName'] ?? '').toString().trim();
+    final sName = (detail['SName'] ?? '').toString().trim();
     final type = (detail['Type'] ?? '').toString().trim();
-    if (type.isNotEmpty) {
+
+    if (cName.isNotEmpty || sName.isNotEmpty || type.isNotEmpty) {
       widgets.add(
-        Wrap(
-          spacing: 8,
-          runSpacing: 4,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Chip(
-              label: Text(type),
-              backgroundColor: Colors.green.shade50,
-              labelStyle: TextStyle(
-                color: Colors.green.shade800,
-                fontWeight: FontWeight.w600,
+            if (cName.isNotEmpty)
+              Text(
+                cName,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
+            if (sName.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                sName,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontStyle: FontStyle.italic,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+            if (type.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  Chip(
+                    label: Text(type),
+                    backgroundColor: Colors.green.shade50,
+                    labelStyle: TextStyle(
+                      color: Colors.green.shade800,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       );
-      widgets.add(const SizedBox(height: 12));
+
+      widgets.add(const SizedBox(height: 16));
+      widgets.add(const Divider(height: 1));
+      widgets.add(const SizedBox(height: 8));
     }
 
+    // 依序顯示其他欄位（CName / SName 已在上面處理，可以略過）
     for (final key in fieldOrder) {
+      if (key == 'CName' || key == 'SName') continue;
+
       final raw = detail[key];
       if (raw == null) continue;
       final text = raw.toString().trim();
       if (text.isEmpty) continue;
 
-      // CName 已經放在 AppBar 了，可以略過或當作第一行標題
-      if (key == 'CName') continue;
+      // 特例：如果是 URL → 改為可點擊的連結
+      if (key == 'url') {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12.0, top: 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fieldLabel[key] ?? key,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: _primaryColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                GestureDetector(
+                  onTap: () async {
+                    final link = text;
+                    try {
+                      await launchUrl(
+                        Uri.parse(link),
+                        mode: LaunchMode.externalApplication,
+                      );
+                    } catch (e) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('無法開啟網址')),
+                      );
+                    }
+                  },
+                  child: Text(
+                    text,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.blue,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        continue;
+      }
 
+      // 一般欄位
       widgets.add(
         Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
+          padding: const EdgeInsets.only(bottom: 12.0, top: 4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 fieldLabel[key] ?? key,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
+                  color: _primaryColor,
                 ),
               ),
               const SizedBox(height: 4),
@@ -248,9 +387,16 @@ class _AzaiBugDetailPageState extends State<AzaiBugDetailPage> {
       widgets.add(const Text('尚無詳細文字說明'));
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: widgets,
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: widgets,
+        ),
+      ),
     );
   }
 }
