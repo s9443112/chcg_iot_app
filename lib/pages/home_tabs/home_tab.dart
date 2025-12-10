@@ -7,7 +7,7 @@ import 'package:chcg_iot_app/pages/home_tabs/NewsDetailPage.dart';
 import 'package:chcg_iot_app/core/api_service.dart';
 import 'package:chcg_iot_app/pages/home_tabs/disease_query/crop_disease_query_page.dart';
 import 'package:chcg_iot_app/pages/home_tabs/disease_query/disease_search_page.dart';
-
+import 'package:chcg_iot_app/pages/home_tabs/amis_price_page.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -149,6 +149,12 @@ class _HomeTabState extends State<HomeTab> {
         'image': 'assets/homepage/detection.png', // 你可以換成自己有的圖片
         'url': null,
       },
+      {
+        'title': '農產品行情',
+        'subtitle': '即時批發市場價格',
+        'image': 'assets/homepage/grape.jpg', // 你可以換成任意已有圖片
+        'url': null,
+      },
       // {
       //   'title': '白粉病檢測',
       //   'subtitle': '進入白粉病檢測平台',
@@ -219,6 +225,13 @@ class _HomeTabState extends State<HomeTab> {
                     context,
                     MaterialPageRoute(
                       builder: (_) => const DiseaseSearchPage(),
+                    ),
+                  );
+                }else if (e['title'] == '農產品行情') {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AgriMarketPage(),
                     ),
                   );
                 }

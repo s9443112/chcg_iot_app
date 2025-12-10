@@ -122,7 +122,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      '智慧農業資源平台',
+                      '彰化智慧雲',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 22,
