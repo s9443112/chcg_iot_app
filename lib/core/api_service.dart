@@ -673,6 +673,25 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>?> fetchAmisHistory(plant_type, plant_code, start_date, end_date) async {
+    final url = Uri.parse('$baseUrl/odata/api/v1-Odata/get_amis_history?plant_type=$plant_type&plant_code=$plant_code&start_date=$start_date&end_date=$end_date');
+
+    final response = await http.get(
+      url,
+      headers: {'accept': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      return data; // ✅ 直接回傳整個 Map
+    } else {
+      print('取得農產品價格失敗: ${response.statusCode}');
+      return null;
+    }
+  }
+
+  
+
   Future<Map<String, dynamic>?> fetchChatgpt({
     required String groupUUID,
     required String fruit,
