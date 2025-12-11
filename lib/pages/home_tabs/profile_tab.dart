@@ -28,6 +28,11 @@ class _ProfileTabState extends State<ProfileTab> {
   String appVersion = '';
   bool _isDeactivating = false;
 
+  /// Telegram 相關 state
+  final TextEditingController _tgChatIdCtrl = TextEditingController();
+  bool _tgEnabled = false;
+  bool _savingTelegram = false;
+
   static const Color _primaryColor = Color(0xFF7B4DBB);
 
   @override
@@ -35,6 +40,12 @@ class _ProfileTabState extends State<ProfileTab> {
     super.initState();
     fetchAccount();
     fetchAppVersion();
+  }
+
+  @override
+  void dispose() {
+    _tgChatIdCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _confirmDeactivateAccount() async {
@@ -259,9 +270,30 @@ class _ProfileTabState extends State<ProfileTab> {
 
       final result = await apiService.account(token);
 
+      // 順便載入 Telegram 設定（如果後端有帶回來）
+      String tgChatId = '';
+      bool tgEnabled = false;
+
+      if (result != null) {
+        final rawChat = result['telegram_chat_id'];
+        final rawEnabled = result['telegram_alert_enabled'];
+
+        tgChatId = (rawChat ?? '').toString();
+
+        if (rawEnabled is bool) {
+          tgEnabled = rawEnabled;
+        } else if (rawEnabled != null) {
+          tgEnabled =
+              rawEnabled.toString().toLowerCase() == 'true' ||
+              rawEnabled.toString() == '1';
+        }
+      }
+
       setState(() {
         account = result;
         isLoading = false;
+        _tgChatIdCtrl.text = tgChatId;
+        _tgEnabled = tgEnabled;
       });
     } catch (e) {
       setState(() {
@@ -412,6 +444,50 @@ class _ProfileTabState extends State<ProfileTab> {
         },
       ),
     );
+  }
+
+  Future<void> _saveTelegramSetting() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token == null || token.isEmpty || token == 'GUEST_MODE') {
+      await _showLoginRequiredDialog();
+      return;
+    }
+
+    setState(() {
+      _savingTelegram = true;
+    });
+
+    try {
+      final res = await apiService.updateTelegramSetting(
+        chatId: _tgChatIdCtrl.text.trim(),
+        enabled: _tgEnabled,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res['message'] ?? 'Telegram 設定已更新'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _savingTelegram = false;
+        });
+      }
+    }
   }
 
   @override
@@ -618,6 +694,106 @@ class _ProfileTabState extends State<ProfileTab> {
                                     appVersion.isNotEmpty
                                         ? showAppInfoDialog
                                         : null,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Telegram 推播設定
+                      Card(
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: const [
+                                  Icon(Icons.telegram,
+                                      size: 20, color: _primaryColor),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Telegram 推播設定',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: _tgChatIdCtrl,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  labelText: 'Telegram Chat ID',
+                                  hintText: '例如：123456789',
+                                  border: OutlineInputBorder(),
+                                  helperText:
+                                      '請先在 Telegram 搜尋 @userinfobot 或與系統 Bot 對話取得 Chat ID',
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              SwitchListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: const Text('接收警戒通知'),
+                                subtitle: const Text(
+                                  '啟用後，當設備觸發警戒值時會透過 Telegram 傳送提醒',
+                                ),
+                                value: _tgEnabled,
+                                onChanged: (v) {
+                                  setState(() {
+                                    _tgEnabled = v;
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                height: 44,
+                                child: ElevatedButton.icon(
+                                  onPressed:
+                                      _savingTelegram
+                                          ? null
+                                          : _saveTelegramSetting,
+                                  icon:
+                                      _savingTelegram
+                                          ? const SizedBox(
+                                              height: 18,
+                                              width: 18,
+                                              child:
+                                                  CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.white,
+                                              ),
+                                            )
+                                          : const Icon(
+                                              Icons.save,
+                                              color: Colors.white,
+                                            ),
+                                  label: Text(
+                                    _savingTelegram
+                                        ? '儲存中...'
+                                        : '儲存 Telegram 設定',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _primaryColor,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(999),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ],
                           ),

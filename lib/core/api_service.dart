@@ -131,6 +131,41 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> updateTelegramSetting({
+    required String chatId,
+    required bool enabled,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token == null || token.isEmpty || token == 'GUEST_MODE') {
+      throw Exception('請先登入後再設定 Telegram 推播');
+    }
+
+    final url = Uri.parse('$baseUrl/odata/api/v1-Odata/account/telegram');
+
+    final res = await http.post(
+      url,
+      headers: {
+        'Authorization': token, // token 內已經有 Bearer 前綴
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: jsonEncode({
+        'chat_id': chatId,
+        'enabled': enabled,
+      }),
+    );
+
+    if (res.statusCode == 200) {
+      return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    } else {
+      throw Exception(
+        '更新 Telegram 設定失敗：${utf8.decode(res.bodyBytes)}',
+      );
+    }
+  }
+
   Future<Map<String, dynamic>> changePassword(
     String oldPassword,
     String newPassword,
@@ -1057,6 +1092,136 @@ class ApiService {
     return success;
   }
 
+    /// 取得單一 Actuator 的警戒值設定（高於 / 低於）
+  Future<Map<String, dynamic>?> fetchAlertThreshold({
+    required String token,
+    required String deviceUUID,
+    required String featureEnglishName,
+    required String serialId,
+  }) async {
+    final url = Uri.parse(
+      '$baseUrl/odata/api/v1-Odata/AlertThreshold'
+      '?deviceUUID=$deviceUUID'
+      '&featureEnglishName=$featureEnglishName'
+      '&serialId=$serialId',
+    );
+
+    final res = await http.get(
+      url,
+      headers: {
+        'accept': 'application/json',
+        'Authorization': token,
+      },
+    );
+
+    if (res.statusCode == 200) {
+      final data = jsonDecode(utf8.decode(res.bodyBytes));
+      final list = (data['value'] as List?) ?? [];
+      if (list.isEmpty) return null;
+      return list.first as Map<String, dynamic>;
+    } else {
+      print('取得 AlertThreshold 失敗: ${res.statusCode} ${res.body}');
+      return null;
+    }
+  }
+
+   /// 新增 / 更新警戒值設定（後端用 update_or_create）
+  Future<Map<String, dynamic>> alertThresholdAdd({
+    required String token,
+    required String deviceUUID,
+    required String featureEnglishName,
+    required String serialId,
+    double? highValue,
+    double? lowValue,
+    String? alias,
+  }) async {
+    final url = Uri.parse('$baseUrl/odata/api/v1-Odata/AlertThreshold');
+
+    final body = <String, dynamic>{
+      'deviceUUID': deviceUUID,
+      'featureEnglishName': featureEnglishName,
+      'serialId': serialId,
+      if (highValue != null) 'highValue': highValue,
+      if (lowValue != null) 'lowValue': lowValue,
+      if (alias != null) 'alias': alias,
+    };
+
+    final res = await http.post(
+      url,
+      headers: {
+        'Authorization': token,
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    } else {
+      throw Exception('新增/更新警戒值失敗：${res.statusCode} ${res.body}');
+    }
+  }
+   /// 刪除警戒值設定
+  Future<Map<String, dynamic>> alertThresholdDel({
+    required String token,
+    required String deviceUUID,
+    required String featureEnglishName,
+    required String serialId,
+  }) async {
+    final url = Uri.parse(
+      '$baseUrl/odata/api/v1-Odata/AlertThreshold'
+      '?deviceUUID=$deviceUUID'
+      '&featureEnglishName=$featureEnglishName'
+      '&serialId=$serialId',
+    );
+
+    final res = await http.delete(
+      url,
+      headers: {
+        'Authorization': token,
+        'accept': 'application/json',
+      },
+    );
+
+    if (res.statusCode == 200) {
+      return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    } else {
+      throw Exception('刪除警戒值失敗：${res.statusCode} ${res.body}');
+    }
+  }
+   /// 取得警戒值觸發歷史紀錄
+  Future<List<dynamic>?> fetchAlertHistory({
+    required String token,
+    required String deviceUUID,
+    required String featureEnglishName,
+    required String serialId,
+    int limit = 50,
+  }) async {
+    final url = Uri.parse(
+      '$baseUrl/odata/api/v1-Odata/AlertHistory'
+      '?deviceUUID=$deviceUUID'
+      '&featureEnglishName=$featureEnglishName'
+      '&serialId=$serialId'
+      '&limit=$limit',
+    );
+
+    final res = await http.get(
+      url,
+      headers: {
+        'accept': 'application/json',
+        'Authorization': token,
+      },
+    );
+
+    if (res.statusCode == 200) {
+      final data = jsonDecode(utf8.decode(res.bodyBytes));
+      return (data['value'] as List?) ?? [];
+    } else {
+      print('取得 AlertHistory 失敗：${res.statusCode} ${res.body}');
+      return null;
+    }
+  }
 
 }
 

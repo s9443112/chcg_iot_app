@@ -3,6 +3,8 @@ import 'package:chcg_iot_app/core/observation_icons.dart';
 import 'package:chcg_iot_app/core/hlscamera.dart';
 import 'package:chcg_iot_app/pages/home_tabs/observationhistory.dart';
 import 'package:chcg_iot_app/pages/home_tabs/autocontrol.dart';
+
+import 'package:chcg_iot_app/pages/home_tabs/AlertSettingPage.dart';
 import 'package:chcg_iot_app/core/api_service.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 // 放在檔案最上面其它 import 旁邊
@@ -186,7 +188,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 3.w,
                   mainAxisSpacing: 3.w,
-                  mainAxisExtent: 23.h,
+                  mainAxisExtent: 25.h,
                 ),
                 itemBuilder:
                     (context, index) => _buildObservationCard(enrichedOthers[index]),
@@ -332,33 +334,58 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ),
                     const Spacer(),
-                    if (isActuator)
-                      PopupMenuButton<String>(
-                        tooltip: '更多',
-                        onSelected: (key) {
-                          if (key == 'auto') _viewAutoControl(context, obs);
-                        },
-                        itemBuilder:
-                            (context) => const [
-                              PopupMenuItem(
-                                value: 'auto',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.settings_suggest_rounded,
-                                      size: 18,
-                                    ),
-                                    SizedBox(width: 6),
-                                    Text('自動控制設定'),
-                                  ],
-                                ),
-                              ),
-                            ],
-                        icon: const Icon(
-                          Icons.more_vert,
-                          color: Colors.black54,
-                        ),
-                      ),
+                    isActuator
+    ? PopupMenuButton<String>(
+        tooltip: '更多',
+        onSelected: (key) {
+          if (key == 'auto') _viewAutoControl(context, obs);
+        },
+        itemBuilder: (context) => const [
+          PopupMenuItem(
+            value: 'auto',
+            child: Row(
+              children: [
+                Icon(Icons.settings_suggest_rounded, size: 18),
+                SizedBox(width: 6),
+                Text('自動控制設定'),
+              ],
+            ),
+          ),
+        ],
+        icon: const Icon(Icons.more_vert, color: Colors.black54),
+      )
+    : PopupMenuButton<String>(
+        tooltip: '更多',
+        onSelected: (key) {
+          if (key == 'alert') {
+           Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (_) => AlertSettingPage(
+      obs: obs,
+      deviceUUID: obs['deviceUUID'],
+      featureEnglishName: obs['featureEnglishName'],
+      serialId: obs['serialId'],
+    ),
+  ),
+);
+          }
+        },
+        itemBuilder: (context) => const [
+          PopupMenuItem(
+            value: 'alert',
+            child: Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, size: 18),
+                SizedBox(width: 6),
+                Text('警戒值設定'),
+              ],
+            ),
+          ),
+        ],
+        icon: const Icon(Icons.more_vert, color: Colors.black54),
+      )
+                    
                   ],
                 ),
 
@@ -434,7 +461,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                     ),
                                     child: Icon(
                                       iconData,
-                                      size: 9.w,
+                                      size: 7.w,
                                       color: const Color(0xFF7B4DBB),
                                     ),
                                   ),
