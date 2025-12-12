@@ -363,6 +363,7 @@ class _HighLowAlertTabState extends State<_HighLowAlertTab> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
+                            color: Colors.white,
                           ),
                         ),
                 ),

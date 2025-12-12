@@ -140,19 +140,19 @@ class _HomeTabState extends State<HomeTab> {
       {
         'title': '用藥查詢',
         'subtitle': '用藥查詢',
-        'image': 'assets/homepage/filer.png', // 你可以換成自己有的圖片
+        'image': 'assets/homepage/258507_0.jpg', // 你可以換成自己有的圖片
         'url': null,
       },
       {
-        'title': '病害查詢',
-        'subtitle': '病害查詢',
-        'image': 'assets/homepage/detection.png', // 你可以換成自己有的圖片
+        'title': '病蟲害查詢',
+        'subtitle': '病蟲害查詢',
+        'image': 'assets/homepage/258470_0.jpg', // 你可以換成自己有的圖片
         'url': null,
       },
       {
         'title': '農產品行情',
         'subtitle': '即時批發市場價格',
-        'image': 'assets/homepage/grape.jpg', // 你可以換成任意已有圖片
+        'image': 'assets/homepage/258508_0.jpg', // 你可以換成任意已有圖片
         'url': null,
       },
       // {
@@ -220,7 +220,7 @@ class _HomeTabState extends State<HomeTab> {
                       builder: (_) => const CropDiseaseQueryPage(),
                     ),
                   );
-                }else if (e['title'] == '病害查詢') {
+                }else if (e['title'] == '病蟲害查詢') {
                   Navigator.push(
                     context,
                     MaterialPageRoute(

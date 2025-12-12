@@ -188,7 +188,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 3.w,
                   mainAxisSpacing: 3.w,
-                  mainAxisExtent: 25.h,
+                  mainAxisExtent: 28.h,
                 ),
                 itemBuilder:
                     (context, index) => _buildObservationCard(enrichedOthers[index]),

@@ -376,7 +376,7 @@ class _DiseaseSearchPageState extends State<DiseaseSearchPage> {
       backgroundColor: const Color(0xFFF6F6F8),
       appBar: AppBar(
         title: const Text(
-          '病害查詢',
+          '病蟲害查詢',
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
         ),
         centerTitle: true,
