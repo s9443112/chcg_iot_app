@@ -104,6 +104,7 @@ class _AmisProductDetailPageState extends State<AmisProductDetailPage> {
     try {
       final startStr = _formatToRoc(_startDate);
       final endStr = _formatToRoc(_endDate);
+      print(widget.plantCode);
 
       final res = await api.fetchAmisHistory(
         widget.plantType,
